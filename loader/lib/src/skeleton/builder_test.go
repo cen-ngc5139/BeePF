@@ -23,7 +23,7 @@ func TestBpfSkeletonBuilder_Build(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test",
+			name: "shepherd",
 			fields: fields{
 				btfArchivePath: "../../../testdata/",
 				objectFile:     "../../../testdata/shepherd_x86_bpfel.o",
@@ -57,6 +57,49 @@ func TestBpfSkeletonBuilder_Build(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Build() got = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestFromJsonPackage(t *testing.T) {
+
+	pkg, err := meta.GenerateComposedObject("../../../testdata/shepherd_x86_bpfel.o")
+	if err != nil {
+		t.Errorf("GenerateComposedObject() error = %v", err)
+		return
+	}
+
+	type args struct {
+		pkg            *meta.ComposedObject
+		btfArchivePath string
+	}
+	tests := []struct {
+		name string
+		args args
+		want *BpfSkeletonBuilder
+	}{
+		{
+			name: "shepherd",
+			args: args{
+				pkg:            pkg,
+				btfArchivePath: "../../../testdata/",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FromJsonPackage(tt.args.pkg, tt.args.btfArchivePath)
+
+			preLoadBpfSkeleton, err := got.Build()
+			if err != nil {
+				t.Errorf("Build() error = %v", err)
+				return
+			}
+
+			if preLoadBpfSkeleton == nil {
+				t.Errorf("Build() got = %v, want %v", preLoadBpfSkeleton, tt.want)
+			}
+
 		})
 	}
 }
