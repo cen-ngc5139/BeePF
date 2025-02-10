@@ -1,6 +1,10 @@
 package meta
 
-import "testing"
+import (
+	"encoding/json"
+	"os"
+	"testing"
+)
 
 func TestGenerateMeta(t *testing.T) {
 	type args struct {
@@ -57,6 +61,18 @@ func TestGenerateMeta(t *testing.T) {
 				}
 			}
 
+			// 将结果写入JSON文件
+			jsonFile := "../../../testdata/shepherd_x86_bpfel.json"
+			jsonData, err := json.Marshal(got)
+			if err != nil {
+				t.Errorf("Failed to marshal JSON: %v", err)
+				return
+			}
+
+			if err := os.WriteFile(jsonFile, jsonData, 0644); err != nil {
+				t.Errorf("Failed to write JSON file: %v", err)
+				return
+			}
 		})
 	}
 }

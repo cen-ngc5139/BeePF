@@ -5,6 +5,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
+	"golang.org/x/sys/unix"
 )
 
 // GenerateMeta 生成元数据
@@ -72,8 +73,8 @@ func GenerateMeta(objectFile string) (*EunomiaObjectMeta, error) {
 	meta := EunomiaObjectMeta{
 		ExportTypes: exportTypes,
 		BpfSkel: BpfSkeletonMeta{
-			Maps:         spec.Maps,
-			Progs:        spec.Programs,
+			Maps:         convertMaps(spec.Maps),
+			Progs:        convertProgs(spec.Programs),
 			DataSections: dataSections,
 		},
 		PerfBufferPages:  64,  // 默认值
@@ -112,4 +113,32 @@ func getActualTypeName(t btf.Type) string {
 	default:
 		return "unknown"
 	}
+}
+
+// 转换 Maps
+func convertMaps(maps map[string]*ebpf.MapSpec) map[string]*MapMeta {
+	result := make(map[string]*MapMeta)
+	for name, mapSpec := range maps {
+		meta := &MapMeta{
+			Name:   name,
+			Ident:  name,
+			Mmaped: mapSpec.Flags&unix.BPF_F_MMAPABLE != 0,
+		}
+		result[name] = meta
+	}
+	return result
+}
+
+// 转换 Programs
+func convertProgs(progs map[string]*ebpf.ProgramSpec) map[string]*ProgMeta {
+	result := make(map[string]*ProgMeta)
+	for name, progSpec := range progs {
+		meta := &ProgMeta{
+			Name:   name,
+			Attach: progSpec.Type.String(), // 使用程序类型作为附加点
+			Link:   true,                   // 默认生成 bpf_link
+		}
+		result[name] = meta
+	}
+	return result
 }

@@ -2,8 +2,6 @@ package meta
 
 import (
 	"encoding/json"
-
-	"github.com/cilium/ebpf"
 )
 
 // EunomiaObjectMeta 全局元数据配置
@@ -70,10 +68,10 @@ type BpfSkeletonMeta struct {
 	DataSections []DataSectionMeta `json:"data_sections"`
 
 	// Maps 描述 eBPF 对象中使用的 map 声明
-	Maps map[string]*ebpf.MapSpec `json:"maps"`
+	Maps map[string]*MapMeta `json:"maps"`
 
 	// Progs 描述 eBPF 对象中的程序（函数）
-	Progs map[string]*ebpf.ProgramSpec `json:"progs"`
+	Progs map[string]*ProgMeta `json:"progs"`
 
 	// ObjName eBPF 对象名称
 	ObjName string `json:"obj_name"`
