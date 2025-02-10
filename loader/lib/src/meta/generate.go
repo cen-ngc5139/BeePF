@@ -1,17 +1,40 @@
 package meta
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
-	"golang.org/x/sys/unix"
 )
 
+const (
+	BPF_F_MMAPABLE = 1024
+)
+
+func GenerateComposedObject(objectFile string) (*ComposedObject, error) {
+	objectRaw, err := os.ReadFile(objectFile)
+	if err != nil {
+		return nil, fmt.Errorf("read object file error: %w", err)
+	}
+
+	meta, err := GenerateMeta(objectRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ComposedObject{
+		Meta:      *meta,
+		BpfObject: objectRaw,
+	}, nil
+}
+
 // GenerateMeta 生成元数据
-func GenerateMeta(objectFile string) (*EunomiaObjectMeta, error) {
-	// 打开 ELF 文件
-	spec, err := ebpf.LoadCollectionSpec(objectFile)
+func GenerateMeta(objectFile []byte) (*EunomiaObjectMeta, error) {
+	// 从字节流中加载
+	spec, err := ebpf.LoadCollectionSpecFromReader(bytes.NewReader(objectFile))
 	if err != nil {
 		return nil, fmt.Errorf("加载 ELF 文件失败: %v", err)
 	}
@@ -115,14 +138,25 @@ func getActualTypeName(t btf.Type) string {
 	}
 }
 
-// 转换 Maps
+// isSpecialSection 判断是否是特殊的 section
+func isSpecialSection(name string) bool {
+	// .bss 和 .rodata 都是特殊的 section，总是支持 mmap
+	return name == ".bss" || strings.HasPrefix(name, ".bss.") ||
+		name == ".rodata" || strings.HasPrefix(name, ".rodata.")
+}
+
+// convertMaps 转换 Maps
 func convertMaps(maps map[string]*ebpf.MapSpec) map[string]*MapMeta {
 	result := make(map[string]*MapMeta)
 	for name, mapSpec := range maps {
+		// .bss section 是一个特殊的 map，总是支持 mmap
+		isBssSection := isSpecialSection(name)
+
 		meta := &MapMeta{
-			Name:   name,
-			Ident:  name,
-			Mmaped: mapSpec.Flags&unix.BPF_F_MMAPABLE != 0,
+			Name:  name,
+			Ident: name,
+			// .bss section 总是可以 mmap
+			Mmaped: isBssSection || (mapSpec.Flags&BPF_F_MMAPABLE != 0),
 		}
 		result[name] = meta
 	}
@@ -135,10 +169,29 @@ func convertProgs(progs map[string]*ebpf.ProgramSpec) map[string]*ProgMeta {
 	for name, progSpec := range progs {
 		meta := &ProgMeta{
 			Name:   name,
-			Attach: progSpec.Type.String(), // 使用程序类型作为附加点
-			Link:   true,                   // 默认生成 bpf_link
+			Attach: progSpec.SectionName, // 使用程序类型作为附加点
+			Link:   needsLink(progSpec.Type),
 		}
 		result[name] = meta
 	}
 	return result
+}
+
+// needsLink 判断是否需要生成 bpf_link
+func needsLink(progType ebpf.ProgramType) bool {
+	switch progType {
+	case ebpf.Kprobe,
+		ebpf.TracePoint,
+		ebpf.XDP,
+		ebpf.SocketFilter,
+		ebpf.RawTracepoint,
+		ebpf.LSM,
+		ebpf.SkLookup,
+		ebpf.Syscall,
+		ebpf.Tracing,
+		ebpf.PerfEvent:
+		return true
+	default:
+		return false
+	}
 }

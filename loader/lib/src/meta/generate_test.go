@@ -1,8 +1,8 @@
 package meta
 
 import (
-	"encoding/json"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -41,7 +41,13 @@ func TestGenerateMeta(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GenerateMeta(tt.args.objectFile)
+			objectFile, err := os.ReadFile(tt.args.objectFile)
+			if err != nil {
+				t.Errorf("Failed to read object file: %v", err)
+				return
+			}
+
+			got, err := GenerateMeta(objectFile)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateMeta() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -60,19 +66,67 @@ func TestGenerateMeta(t *testing.T) {
 					}
 				}
 			}
+		})
+	}
+}
+
+func TestGenerateComposedObject(t *testing.T) {
+	type args struct {
+		objectFile string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *ComposedObject
+		wantErr bool
+	}{
+		{
+			name: "test",
+			args: args{
+				objectFile: "../../../testdata/shepherd_x86_bpfel.o",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GenerateComposedObject(tt.args.objectFile)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GenerateComposedObject() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			inner, err := got.MarshalJSON()
+			if err != nil {
+				t.Errorf("MarshalJSON() error = %v", err)
+				return
+			}
 
 			// 将结果写入JSON文件
 			jsonFile := "../../../testdata/shepherd_x86_bpfel.json"
-			jsonData, err := json.Marshal(got)
-			if err != nil {
-				t.Errorf("Failed to marshal JSON: %v", err)
-				return
-			}
 
-			if err := os.WriteFile(jsonFile, jsonData, 0644); err != nil {
+			if err := os.WriteFile(jsonFile, inner, 0644); err != nil {
 				t.Errorf("Failed to write JSON file: %v", err)
 				return
 			}
+
+			unmarshal, err := os.ReadFile(jsonFile)
+			if err != nil {
+				t.Errorf("Failed to read JSON file: %v", err)
+				return
+			}
+
+			got2 := &ComposedObject{}
+			err = got2.UnmarshalJSON(unmarshal)
+			if err != nil {
+				t.Errorf("UnmarshalJSON() error = %v", err)
+				return
+			}
+
+			if !reflect.DeepEqual(got, got2) {
+				t.Errorf("GenerateComposedObject() got = %v, want %v", got, got2)
+			}
+
 		})
 	}
 }
