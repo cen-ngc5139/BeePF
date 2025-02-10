@@ -336,3 +336,13 @@ type RunnerConfig struct {
 	// PrintKernelDebug 是否从 /sys/kernel/debug/tracing/trace_pipe 打印 bpf_printk 输出
 	PrintKernelDebug bool `json:"print_kernel_debug"`
 }
+
+// FindMapByIdent 通过标识符查找 Map
+func (s *BpfSkeletonMeta) FindMapByIdent(ident string) *MapMeta {
+	for _, m := range s.Maps {
+		if m.Ident == ident {
+			return m
+		}
+	}
+	return nil
+}

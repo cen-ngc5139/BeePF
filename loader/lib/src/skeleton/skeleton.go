@@ -47,7 +47,7 @@ type BpfSkeleton struct {
 	Btf *container.BTFContainer
 
 	// 程序的链接信息
-	Links []AttachLink
+	Links []link.Link
 
 	// Collection 替代原来的 prog
 	// 包含已加载的程序和 maps
