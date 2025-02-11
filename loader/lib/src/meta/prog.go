@@ -27,11 +27,21 @@ func (p *ProgMeta) AttachProgram(spec *ebpf.ProgramSpec, program *ebpf.Program) 
 		return p.attachXDP()
 	case ebpf.RawTracepoint:
 		return p.attachRawTracepoint(program)
+	case ebpf.Tracing:
+		return p.attachTracing(program)
 	case ebpf.LSM:
 		return p.attachLsm()
 	default:
 		return nil, fmt.Errorf("program type %s not implemented yet", spec.Type)
 	}
+}
+
+func (p *ProgMeta) attachTracing(program *ebpf.Program) (link.Link, error) {
+	tracing, err := link.AttachTracing(link.TracingOptions{Program: program})
+	if err != nil {
+		return nil, fmt.Errorf("error:%v, couldn's activate tracing %s, matchFuncName:%s", err, p.Attach, p.Name)
+	}
+	return tracing, nil
 }
 
 func (p *ProgMeta) attachKprobe(program *ebpf.Program) (link.Link, error) {

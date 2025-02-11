@@ -33,7 +33,6 @@ func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, error) {
 		}
 
 		// 根据不同的 AttachType 使用对应的 attach 方式
-
 		link, err := progMeta.AttachProgram(progSpec, prog)
 		if err != nil {
 			return nil, fmt.Errorf("attach program %s error: %w", progMeta.Name, err)
