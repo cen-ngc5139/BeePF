@@ -2,6 +2,8 @@ package meta
 
 import (
 	"encoding/json"
+
+	"github.com/cilium/ebpf/btf"
 )
 
 // EunomiaObjectMeta 全局元数据配置
@@ -48,7 +50,7 @@ type ExportedTypesStructMeta struct {
 	Size uint32 `json:"size"`
 
 	// TypeID BTF 类型 ID
-	TypeID uint32 `json:"type_id"`
+	Type btf.Type `json:"type"`
 }
 
 // ExportedTypesStructMemberMeta 导出类型结构成员定义

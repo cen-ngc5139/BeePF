@@ -76,6 +76,7 @@ func GenerateMeta(objectFile []byte) (*EunomiaObjectMeta, error) {
 					Name:    structName,
 					Size:    uint32(structSize),
 					Members: members,
+					Type:    varSpec.Type(),
 				}
 				exportTypes = append(exportTypes, exportType)
 
