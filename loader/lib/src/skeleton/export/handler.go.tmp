@@ -1,0 +1,137 @@
+package export
+
+import (
+	"encoding/binary"
+	"encoding/json"
+	"fmt"
+	"strings"
+)
+
+// SampleMapProcessor 定义 map 采样处理器接口
+type SampleMapProcessor interface {
+	HandleEvent(keyBuffer, valueBuffer []byte) error
+}
+
+// JsonMapExporter JSON 格式导出处理器
+type JsonMapExporter struct {
+	exporter *EventExporter
+}
+
+func NewJsonMapExporter(exporter *EventExporter) *JsonMapExporter {
+	return &JsonMapExporter{exporter: exporter}
+}
+
+func (h *JsonMapExporter) HandleEvent(keyBuffer, valueBuffer []byte) error {
+	btfSpec := h.exporter.btfContainer.GetSpec()
+
+	// 获取检查过的类型信息
+	checkedKeyTypes, checkedValueTypes, err := h.exporter.GetCheckedTypes()
+	if err != nil {
+		return fmt.Errorf("get checked types error: %w", err)
+	}
+
+	// 导出 key
+	keyOut, err := DumpToJsonWithCheckedTypes(btfSpec, checkedKeyTypes, keyBuffer)
+	if err != nil {
+		return fmt.Errorf("dump key to json error: %w", err)
+	}
+
+	// 导出 value
+	valueOut, err := DumpToJsonWithCheckedTypes(btfSpec, checkedValueTypes, valueBuffer)
+	if err != nil {
+		return fmt.Errorf("dump value to json error: %w", err)
+	}
+
+	// 构造最终的 JSON
+	result := map[string]interface{}{
+		"key":   keyOut,
+		"value": valueOut,
+	}
+
+	jsonData, err := json.Marshal(result)
+	if err != nil {
+		return fmt.Errorf("marshal json error: %w", err)
+	}
+
+	// 输出数据
+	h.exporter.DumpDataToCallback(ReceivedEventData{
+		Type:     TypeJsonText,
+		JsonText: string(jsonData),
+	})
+
+	return nil
+}
+
+// Log2HistExporter 直方图导出处理器
+type Log2HistExporter struct {
+	exporter *EventExporter
+}
+
+func NewLog2HistExporter(exporter *EventExporter) *Log2HistExporter {
+	return &Log2HistExporter{exporter: exporter}
+}
+
+func (h *Log2HistExporter) HandleEvent(keyBuffer, valueBuffer []byte) error {
+	btfSpec := h.exporter.BtfContainer.Spec
+
+	// 获取检查过的类型信息
+	checkedKeyTypes, checkedValueTypes, config, err := h.exporter.GetMapConfig()
+	if err != nil {
+		return fmt.Errorf("get map config error: %w", err)
+	}
+
+	var output strings.Builder
+	output.WriteString("key = ")
+
+	// 导出 key
+	if err := DumpToStringWithCheckedTypes(btfSpec, checkedKeyTypes, keyBuffer, &output); err != nil {
+		return fmt.Errorf("dump key error: %w", err)
+	}
+	output.WriteString("\n")
+
+	// 查找并处理 slots
+	var slots []uint32
+	for _, member := range checkedValueTypes {
+		offset := member.BitOffset / 8
+		if member.BitOffset%8 != 0 {
+			return fmt.Errorf("bit fields not supported")
+		}
+
+		if member.FieldName == "slots" {
+			// 读取 slots 数据
+			slotCount := member.Size / 4
+			slots = make([]uint32, slotCount)
+			for i := uint32(0); i < slotCount; i++ {
+				start := offset + i*4
+				end := start + 4
+				slots[i] = binary.LittleEndian.Uint32(valueBuffer[start:end])
+			}
+		} else {
+			// 导出其他字段
+			output.WriteString(fmt.Sprintf("%s = ", member.FieldName))
+			if err := DumpToString(btfSpec, member.TypeID,
+				valueBuffer[offset:offset+member.Size], &output); err != nil {
+				return fmt.Errorf("dump value field error: %w", err)
+			}
+			output.WriteString("\n")
+		}
+	}
+
+	// 输出基本信息
+	h.exporter.DumpDataToCallback(ReceivedEventData{
+		Type:      TypePlainText,
+		PlainText: output.String(),
+	})
+
+	// 如果有 slots，打印直方图
+	if len(slots) > 0 {
+		var histOutput strings.Builder
+		PrintLog2Hist(slots, config.Unit, &histOutput)
+		h.exporter.DumpDataToCallback(ReceivedEventData{
+			Type:      TypePlainText,
+			PlainText: histOutput.String(),
+		})
+	}
+
+	return nil
+}
