@@ -1,10 +1,12 @@
 package export
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/cilium/ebpf/btf"
 )
@@ -36,6 +38,64 @@ func DumpToJson(typ btf.Type, data []byte) (json.RawMessage, error) {
 	default:
 		return nil, fmt.Errorf("unsupported type: %T", t)
 	}
+}
+
+// DumpToJsonWithCheckedTypes 使用已检查的类型信息将数据转换为 JSON
+func DumpToJsonWithCheckedTypes(
+	checkedTypes []CheckedExportedMember,
+	data []byte,
+) (json.RawMessage, error) {
+	// 创建结果 map
+	result := make(map[string]interface{})
+
+	// 处理每个成员
+	for _, member := range checkedTypes {
+		// 从 Type 中获取实际的 Size
+		size, err := btf.Sizeof(member.Type)
+		if err != nil {
+			return nil, fmt.Errorf("get size error: %w", err)
+		}
+
+		offset := uint64(member.BitOffset) / 8
+		if member.BitOffset%8 != 0 {
+			return nil, fmt.Errorf("bit offset must be byte-aligned: %s", member.FieldName)
+		}
+
+		// 确保数据长度足够
+		end := offset + uint64(size)
+		if uint64(len(data)) < end {
+			return nil, fmt.Errorf(
+				"input buffer too small for field %s: need %d..%d bytes, got %d bytes",
+				member.FieldName,
+				offset,
+				end,
+				len(data),
+			)
+		}
+
+		// 获取字段数据
+		fieldData := data[offset:end]
+
+		// 转换字段数据为 JSON
+		fieldJson, err := DumpToJson(member.Type, fieldData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to dump field %s: %w", member.FieldName, err)
+		}
+
+		// 由于 json.Unmarshal 会丢失精度，所以使用 json.NewDecoder 来解码
+		var fieldValue interface{}
+		decoder := json.NewDecoder(bytes.NewReader(fieldJson))
+		decoder.UseNumber()
+		if err := decoder.Decode(&fieldValue); err != nil {
+			return nil, fmt.Errorf("failed to decode field %s JSON: %w", member.FieldName, err)
+		}
+
+		// 添加到结果 map
+		result[member.FieldName] = fieldValue
+	}
+
+	// 编码最终结果
+	return json.Marshal(result)
 }
 
 // dumpInt 处理整数类型
@@ -213,4 +273,82 @@ func dumpFloat(t *btf.Float, data []byte) (json.RawMessage, error) {
 	default:
 		return nil, fmt.Errorf("unsupported float size: %d", size)
 	}
+}
+
+// DumpToString 将 BTF 类型数据转换为字符串
+func DumpToString(typ btf.Type, data []byte) (string, error) {
+	// 先转换为 JSON
+	jsonVal, err := DumpToJson(typ, data)
+	if err != nil {
+		return "", fmt.Errorf("convert to json error: %w", err)
+	}
+
+	// 使用 json.decode 解码
+	decoder := json.NewDecoder(bytes.NewReader(jsonVal))
+	decoder.UseNumber()
+	var val interface{}
+	if err := decoder.Decode(&val); err != nil {
+		return "", fmt.Errorf("decode json error: %w", err)
+	}
+
+	switch v := val.(type) {
+	case string:
+		return v, nil
+	case float64:
+		return fmt.Sprintf("%v", v), nil
+	default:
+		return fmt.Sprintf("%v", v), nil
+	}
+}
+
+// DumpToStringWithCheckedTypes 使用已检查的类型信息将数据转换为字符串
+func DumpToStringWithCheckedTypes(
+	checkedTypes []CheckedExportedMember,
+	data []byte,
+	out *strings.Builder,
+) error {
+	for _, member := range checkedTypes {
+		// 处理输出头部偏移
+		if uint64(out.Len()) < uint64(member.OutputHeaderOffset) {
+			out.WriteString(strings.Repeat(" ",
+				int(member.OutputHeaderOffset)-out.Len()))
+		} else {
+			out.WriteString(" ")
+		}
+
+		// 计算字段偏移量
+		offset := member.BitOffset / 8
+		if member.BitOffset%8 != 0 {
+			return fmt.Errorf(
+				"bit field found in member %s, but it is not supported now",
+				member.FieldName,
+			)
+		}
+
+		size, err := btf.Sizeof(member.Type)
+		if err != nil {
+			return fmt.Errorf("get size error: %w", err)
+		}
+
+		// 确保数据长度足够
+		end := uint64(offset) + uint64(size)
+		if uint64(len(data)) < end {
+			return fmt.Errorf(
+				"data too short for member %s: need %d bytes, got %d",
+				member.FieldName, end, len(data),
+			)
+		}
+
+		// 获取字段数据并转换为字符串
+		fieldData := data[offset:end]
+		str, err := DumpToString(member.Type, fieldData)
+		if err != nil {
+			return fmt.Errorf("dump member %s error: %w", member.FieldName, err)
+		}
+
+		// 写入结果
+		out.WriteString(str)
+	}
+
+	return nil
 }

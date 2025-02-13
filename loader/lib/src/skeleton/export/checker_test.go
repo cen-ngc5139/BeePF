@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/container"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 )
 
@@ -34,19 +33,13 @@ func TestCheckExportTypesBtf(t *testing.T) {
 				return
 			}
 
-			meta, err := meta.GenerateMeta(raw)
+			generateMeta, err := meta.GenerateMeta(raw)
 			if err != nil {
 				t.Errorf("GenerateComposedObject() error = %v", err)
 				return
 			}
 
-			btf, err := container.NewBTFContainerFromBinary(raw)
-			if err != nil {
-				t.Errorf("NewBTFContainerFromBinary() error = %v", err)
-				return
-			}
-
-			got, err := CheckExportTypesBtf(meta.ExportTypes[0], btf.GetSpec())
+			got, err := CheckExportTypesBtf(generateMeta.ExportTypes[0])
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CheckExportTypesBtf() error = %v, wantErr %v", err, tt.wantErr)
 				return

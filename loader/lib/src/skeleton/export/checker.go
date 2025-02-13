@@ -8,7 +8,7 @@ import (
 )
 
 // CheckExportTypesBtf 检查导出类型与 BTF 信息的匹配性
-func CheckExportTypesBtf(structMeta meta.ExportedTypesStructMeta, spec *btf.Spec) ([]CheckedExportedMember, error) {
+func CheckExportTypesBtf(structMeta meta.ExportedTypesStructMeta) ([]CheckedExportedMember, error) {
 	// 获取实际的结构体类型
 	st, err := getActualStructType(structMeta.Type)
 	if err != nil {
