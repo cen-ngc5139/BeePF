@@ -61,6 +61,9 @@ type ExportedTypesStructMemberMeta struct {
 
 	// Type 成员类型
 	Type string `json:"type"`
+
+	// BTFType BTF 类型
+	BTFType btf.Type `json:"btf_type"`
 }
 
 // BpfSkeletonMeta BPF 骨架元数据

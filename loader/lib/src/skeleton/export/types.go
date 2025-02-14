@@ -1,8 +1,9 @@
 package export
 
 import (
+	"sync"
+
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/container"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cilium/ebpf/btf"
 )
 
@@ -45,37 +46,47 @@ type CheckedExportedMember struct {
 
 // EventHandler 定义事件处理接口
 type EventHandler interface {
-	HandleEvent(ctx interface{}, data *ReceivedEventData) error
+	HandleEvent(ctx *UserContext, data *ReceivedEventData) error
+}
+
+// UserContext 用于存储用户上下文
+type UserContext struct {
+	Value interface{}
+	mu    sync.RWMutex
 }
 
 // EventExporter 主要的导出器结构
 type EventExporter struct {
-	userExportEventHandler EventHandler
-	userCtx                interface{}
-	btfContainer           *container.BTFContainer
-	internalImpl           ExporterImplementation
+	UserExportEventHandler EventHandler
+	UserCtx                *UserContext
+	BTFContainer           *container.BTFContainer
+	InternalImpl           ExporterInternalImplementation
 }
-
-// ExporterImplementation 定义内部实现
-type ExporterImplementation struct {
-	Type            ImplType
-	EventProcessor  interface{} // 可以是 BufferValueProcessor 或 SampleMapProcessor
-	CheckedTypes    []CheckedExportedMember
-	CheckedKeyTypes []CheckedExportedMember
-	CheckedValTypes []CheckedExportedMember
-	SampleMapConfig *meta.MapSampleMeta
-}
-
-type ImplType int
-
-const (
-	ImplBufferValue ImplType = iota
-	ImplKeyValueMap
-)
 
 // EventExporterBuilder 用于构建 EventExporter
 type EventExporterBuilder struct {
-	exportFormat       ExportFormatType
-	exportEventHandler EventHandler
-	userCtx            interface{}
+	ExportFormat       ExportFormatType
+	ExportEventHandler EventHandler
+	UserCtx            *UserContext
+}
+
+// NewUserContext 创建新的用户上下文
+func NewUserContext(value interface{}) *UserContext {
+	return &UserContext{
+		Value: value,
+	}
+}
+
+// GetValue 获取上下文值
+func (c *UserContext) GetValue() interface{} {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.Value
+}
+
+// SetValue 设置上下文值
+func (c *UserContext) SetValue(value interface{}) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Value = value
 }
