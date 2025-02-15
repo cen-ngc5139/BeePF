@@ -84,6 +84,13 @@ func TestDumpToJsonWithCheckedTypes(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "test dump sched_latency_t",
+			args: args{
+				specFile: "../../../../testdata/shepherd_x86_bpfel.o",
+				binFile:  "../../../../testdata/shepherd_x86_bpfel.bin",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

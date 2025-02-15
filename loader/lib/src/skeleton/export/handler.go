@@ -19,23 +19,23 @@ type InternalSampleMapProcessor interface {
 
 // JsonExportEventHandler JSON格式导出处理器
 type JsonExportEventHandler struct {
-	exporter *EventExporter
-	mu       *sync.RWMutex
+	Exporter *EventExporter
+	Mu       *sync.RWMutex
 }
 
 func NewJsonExportEventHandler(exporter *EventExporter) *JsonExportEventHandler {
 	return &JsonExportEventHandler{
-		exporter: exporter,
-		mu:       &sync.RWMutex{},
+		Exporter: exporter,
+		Mu:       &sync.RWMutex{},
 	}
 }
 
 func (h *JsonExportEventHandler) HandleEvent(data []byte) error {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	h.Mu.RLock()
+	defer h.Mu.RUnlock()
 
 	// 获取检查过的类型信息
-	checkedTypes, err := h.exporter.InternalImpl.GetCheckedTypes()
+	checkedTypes, err := h.Exporter.InternalImpl.GetCheckedTypes()
 	if err != nil {
 		return fmt.Errorf("get checked types error: %w", err)
 	}
@@ -47,7 +47,7 @@ func (h *JsonExportEventHandler) HandleEvent(data []byte) error {
 	}
 
 	// 输出数据
-	return h.exporter.UserExportEventHandler.HandleEvent(h.exporter.UserCtx, &ReceivedEventData{
+	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &ReceivedEventData{
 		Type:     TypeJsonText,
 		JsonText: string(jsonData),
 	})
@@ -55,23 +55,23 @@ func (h *JsonExportEventHandler) HandleEvent(data []byte) error {
 
 // PlainTextExportEventHandler 纯文本导出处理器
 type PlainTextExportEventHandler struct {
-	exporter *EventExporter
-	mu       *sync.RWMutex
+	Exporter *EventExporter
+	Mu       *sync.RWMutex
 }
 
 func NewPlainTextExportEventHandler(exporter *EventExporter) *PlainTextExportEventHandler {
 	return &PlainTextExportEventHandler{
-		exporter: exporter,
-		mu:       &sync.RWMutex{},
+		Exporter: exporter,
+		Mu:       &sync.RWMutex{},
 	}
 }
 
 func (h *PlainTextExportEventHandler) HandleEvent(data []byte) error {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	h.Mu.RLock()
+	defer h.Mu.RUnlock()
 
 	// 获取检查过的类型信息
-	checkedTypes, err := h.exporter.InternalImpl.GetCheckedTypes()
+	checkedTypes, err := h.Exporter.InternalImpl.GetCheckedTypes()
 	if err != nil {
 		return fmt.Errorf("get checked types error: %w", err)
 	}
@@ -90,7 +90,7 @@ func (h *PlainTextExportEventHandler) HandleEvent(data []byte) error {
 	}
 
 	// 输出数据
-	return h.exporter.UserExportEventHandler.HandleEvent(h.exporter.UserCtx, &ReceivedEventData{
+	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &ReceivedEventData{
 		Type: TypePlainText,
 		Text: output.String(),
 	})
@@ -98,28 +98,28 @@ func (h *PlainTextExportEventHandler) HandleEvent(data []byte) error {
 
 // RawExportEventHandler 原始数据导出处理器
 type RawExportEventHandler struct {
-	exporter *EventExporter
-	mu       *sync.RWMutex
+	Exporter *EventExporter
+	Mu       *sync.RWMutex
 }
 
 func NewRawExportEventHandler(exporter *EventExporter) *RawExportEventHandler {
 	return &RawExportEventHandler{
-		exporter: exporter,
-		mu:       &sync.RWMutex{},
+		Exporter: exporter,
+		Mu:       &sync.RWMutex{},
 	}
 }
 
 func (h *RawExportEventHandler) HandleEvent(data []byte) error {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	h.Mu.RLock()
+	defer h.Mu.RUnlock()
 
-	if h.exporter.UserExportEventHandler == nil {
+	if h.Exporter.UserExportEventHandler == nil {
 		fmt.Println("Raw export event handler expects user callback, data will be dropped")
 		return nil
 	}
 
 	// 直接传递原始数据
-	return h.exporter.UserExportEventHandler.HandleEvent(h.exporter.UserCtx, &ReceivedEventData{
+	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &ReceivedEventData{
 		Type:   TypeBuffer,
 		Buffer: data,
 	})

@@ -3,10 +3,12 @@ package skeleton
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync/atomic"
 	"time"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/ebpf/ringbuf"
 )
@@ -76,11 +78,28 @@ func (p *RingBufPoller) Poll() error {
 		return fmt.Errorf("read ringbuf error: %w", err)
 	}
 
+	err = saveRawBytes("test.bin", record.RawSample)
+	if err != nil {
+		return err
+	}
+
 	if err := p.processor.HandleEvent(record.RawSample); err != nil {
 		return fmt.Errorf("handle event error: %w", err)
 	}
 
 	return nil
+}
+
+// 直接将字节数组保存为文件的辅助函数
+func saveRawBytes(filename string, data []byte) error {
+	// 确保目录存在
+	dir := filepath.Dir(filename)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("create directory failed: %w", err)
+	}
+
+	// 直接写入原始字节
+	return os.WriteFile(filename, data, 0644)
 }
 
 // NewPerfEventPoller 创建 perf event 轮询器
@@ -150,4 +169,29 @@ func (p *SampleMapPoller) Close() error {
 		}
 	}
 	return nil
+}
+
+// findStructType 递归查找 BTF 中的结构体类型
+func findStructType(t btf.Type) (*btf.Struct, error) {
+	switch v := t.(type) {
+	case *btf.Struct:
+		// 直接是结构体类型
+		return v, nil
+	case *btf.Pointer:
+		// 如果是指针，查找其目标类型
+		return findStructType(v.Target)
+	case *btf.Typedef:
+		// 如果是类型别名，查找原始类型
+		return findStructType(v.Type)
+	case *btf.Volatile:
+		// 如果是 volatile 修饰，查找基础类型
+		return findStructType(v.Type)
+	case *btf.Const:
+		// 如果是 const 修饰，查找基础类型
+		return findStructType(v.Type)
+	case *btf.Var:
+		return findStructType(v.Type)
+	default:
+		return nil, fmt.Errorf("unexpected type %T, cannot find struct", t)
+	}
 }

@@ -30,7 +30,7 @@ func DumpToJson(typ btf.Type, data []byte) (json.RawMessage, error) {
 	case *btf.Float:
 		return dumpFloat(t, data)
 	case *btf.Typedef:
-		return DumpToJson(typ, data)
+		return handleTypedef(t, data)
 	case *btf.Volatile:
 		return DumpToJson(typ, data)
 	case *btf.Const:
@@ -351,4 +351,19 @@ func DumpToStringWithCheckedTypes(
 	}
 
 	return nil
+}
+
+// 处理 typedef 类型
+func handleTypedef(typedef *btf.Typedef, data []byte) (json.RawMessage, error) {
+	// 特别处理 __u32 类型
+	if typedef.Name == "__u32" {
+		if len(data) < 4 {
+			return nil, fmt.Errorf("data too short for __u32: need 4 bytes, got %d", len(data))
+		}
+		// 使用小端序读取 uint32 值
+		value := binary.LittleEndian.Uint32(data[:4])
+		return json.Marshal(value)
+	}
+	// 对于其他 typedef，递归处理其底层类型
+	return DumpToJson(typedef.Type, data)
 }

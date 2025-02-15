@@ -45,5 +45,6 @@ func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, error) {
 		ConfigData: p.ConfigData,
 		Links:      links,
 		Collection: coll,
+		Btf:        p.Btf,
 	}, nil
 }
