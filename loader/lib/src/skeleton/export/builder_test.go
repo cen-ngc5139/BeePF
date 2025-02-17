@@ -5,29 +5,11 @@ import (
 	"testing"
 
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/container"
 	"github.com/cilium/ebpf/btf"
 )
-
-type MyCustomHandler struct {
-	logger *zap.Logger
-}
-
-// 实现 EventHandler 接口
-func (h *MyCustomHandler) HandleEvent(ctx *UserContext, data *ReceivedEventData) error {
-	switch data.Type {
-	case TypeJsonText:
-		h.logger.Info("received json data",
-			zap.String("data", data.JsonText))
-	case TypePlainText:
-		h.logger.Info("received plain text",
-			zap.String("data", data.Text))
-	}
-	return nil
-}
 
 func TestEventExporterBuilder_BuildForSingleValueWithTypeDescriptor(t *testing.T) {
 	type fields struct {
@@ -54,7 +36,7 @@ func TestEventExporterBuilder_BuildForSingleValueWithTypeDescriptor(t *testing.T
 				progFile:           "../../../../testdata/simple_prog.bpf.o",
 				binFile:            "../../../../testdata/dumper_test.bin",
 				ExportFormat:       FormatJson,
-				ExportEventHandler: &MyCustomHandler{logger: zaptest.NewLogger(t)},
+				ExportEventHandler: &MyCustomHandler{Logger: zaptest.NewLogger(t)},
 				UserCtx:            NewUserContext(0),
 			},
 		},

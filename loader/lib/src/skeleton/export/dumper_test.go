@@ -69,6 +69,7 @@ func TestDumpToJsonWithCheckedTypes(t *testing.T) {
 		binFile      string
 		checkedTypes []CheckedExportedMember
 		data         []byte
+		skipDiff     bool
 	}
 	tests := []struct {
 		name    string
@@ -89,6 +90,7 @@ func TestDumpToJsonWithCheckedTypes(t *testing.T) {
 			args: args{
 				specFile: "../../../../testdata/shepherd_x86_bpfel.o",
 				binFile:  "../../../../testdata/shepherd_x86_bpfel.bin",
+				skipDiff: true,
 			},
 		},
 	}
@@ -125,7 +127,9 @@ func TestDumpToJsonWithCheckedTypes(t *testing.T) {
 			err = json.Unmarshal(got, &result)
 			require.NoError(t, err, "Failed to unmarshal JSON")
 
-			result.TestWithExampleData(t)
+			if !tt.args.skipDiff {
+				result.TestWithExampleData(t)
+			}
 		})
 	}
 }

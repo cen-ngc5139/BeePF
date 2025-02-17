@@ -2,8 +2,10 @@ package skeleton
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -27,6 +29,7 @@ type SampleMapProcessor interface {
 type Poller interface {
 	Poll() error
 	Close() error
+	GetPollFunc() PollFunc
 }
 
 // RingBufPoller ring buffer 轮询器
@@ -57,6 +60,78 @@ type MapSampleConfig struct {
 	ClearMap bool `json:"clear_map"`
 }
 
+type ProgramPoller struct {
+	// 轮询控制
+	stopChan chan struct{}
+	wg       sync.WaitGroup
+
+	// 错误处理
+	errChan chan error
+
+	// 轮询配置
+	interval time.Duration
+}
+
+// NewProgramPoller 创建新的轮询器
+func NewProgramPoller(interval time.Duration) *ProgramPoller {
+	return &ProgramPoller{
+		stopChan: make(chan struct{}),
+		errChan:  make(chan error, 1),
+		interval: interval,
+	}
+}
+
+// PollFunc 轮询函数类型
+type PollFunc func() error
+
+// StartPolling 开始轮询
+func (p *ProgramPoller) StartPolling(
+	name string,
+	pollFn PollFunc,
+	errorHandler func(error),
+) {
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+
+		ticker := time.NewTicker(p.interval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-p.stopChan:
+				return
+
+			case <-ticker.C:
+				// 执行轮询函数
+				if err := pollFn(); err != nil {
+					if errorHandler != nil {
+						errorHandler(err)
+					}
+					// 发送错误到错误通道
+					select {
+					case p.errChan <- fmt.Errorf("poll %s error: %w", name, err):
+					default:
+						// 错误通道已满，记录日志
+						log.Printf("Error polling %s: %v", name, err)
+					}
+				}
+			}
+		}
+	}()
+}
+
+// Stop 停止轮询
+func (p *ProgramPoller) Stop() {
+	close(p.stopChan)
+	p.wg.Wait()
+}
+
+// Errors 返回错误通道
+func (p *ProgramPoller) Errors() <-chan error {
+	return p.errChan
+}
+
 // NewRingBufPoller 创建 ring buffer 轮询器
 func NewRingBufPoller(bpfMap *ebpf.Map, processor EventProcessor, timeoutMs uint64) (*RingBufPoller, error) {
 	reader, err := ringbuf.NewReader(bpfMap)
@@ -69,6 +144,12 @@ func NewRingBufPoller(bpfMap *ebpf.Map, processor EventProcessor, timeoutMs uint
 		processor: processor,
 		timeout:   time.Duration(timeoutMs) * time.Millisecond,
 	}, nil
+}
+
+func (p *RingBufPoller) GetPollFunc() PollFunc {
+	return func() error {
+		return p.Poll()
+	}
 }
 
 // Poll 实现轮询方法
@@ -131,6 +212,12 @@ func (p *PerfEventPoller) Poll() error {
 	return nil
 }
 
+func (p *PerfEventPoller) GetPollFunc() PollFunc {
+	return func() error {
+		return p.Poll()
+	}
+}
+
 // NewSampleMapPoller 创建 map 采样轮询器
 func NewSampleMapPoller(bpfMap *ebpf.Map, processor SampleMapProcessor, config *MapSampleConfig) *SampleMapPoller {
 	return &SampleMapPoller{
@@ -154,6 +241,12 @@ func (p *SampleMapPoller) Poll() error {
 
 	time.Sleep(time.Duration(p.sampleConfig.Interval) * time.Millisecond)
 	return nil
+}
+
+func (p *SampleMapPoller) GetPollFunc() PollFunc {
+	return func() error {
+		return p.Poll()
+	}
 }
 
 // Close 清理资源

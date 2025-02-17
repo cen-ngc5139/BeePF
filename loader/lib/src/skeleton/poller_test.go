@@ -1,12 +1,16 @@
 package skeleton
 
 import (
+	"os"
+	"os/signal"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 	"github.com/cilium/ebpf/ringbuf"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cilium/ebpf"
@@ -14,7 +18,7 @@ import (
 	"github.com/cilium/ebpf/perf"
 )
 
-func TestPerfEventPoller_Poll(t *testing.T) {
+func TestRingBufferPoller_Poll(t *testing.T) {
 	type fields struct {
 		BinaryPath, BtfArchivePath string
 		reader                     *perf.Reader
@@ -69,7 +73,8 @@ func TestPerfEventPoller_Poll(t *testing.T) {
 
 					ee := export.NewEventExporterBuilder().
 						SetExportFormat(export.FormatJson).
-						SetUserContext(export.NewUserContext(0))
+						SetUserContext(export.NewUserContext(0)).
+						SetEventHandler(&export.MyCustomHandler{Logger: zaptest.NewLogger(t)})
 
 					structType, err := findStructType(v.Type())
 					if err != nil {
@@ -99,9 +104,24 @@ func TestPerfEventPoller_Poll(t *testing.T) {
 						processor: jsonHandler,
 						timeout:   tt.fields.timeout,
 					}
-					if err := p.Poll(); (err != nil) != tt.wantErr {
-						t.Errorf("Poll() error = %v, wantErr %v", err, tt.wantErr)
-					}
+					//
+					//if err := p.Poll(); (err != nil) != tt.wantErr {
+					//	t.Errorf("Poll() error = %v, wantErr %v", err, tt.wantErr)
+					//}
+
+					pp := NewProgramPoller(100 * time.Millisecond)
+					pp.StartPolling("test", p.GetPollFunc(), func(err error) {
+						t.Errorf("Poll() error = %v", err)
+					})
+
+					// 等待信号
+					sigChan := make(chan os.Signal, 1)
+					signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+					<-sigChan
+
+					// 停止轮询
+					pp.Stop()
 				}
 
 			}
