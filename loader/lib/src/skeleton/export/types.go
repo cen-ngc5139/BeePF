@@ -14,6 +14,7 @@ const (
 	FormatJson ExportFormatType = iota
 	FormatPlainText
 	FormatRawEvent
+	FormatLog2Hist
 )
 
 // ReceivedEventData 表示从 eBPF 程序接收到的数据

@@ -104,10 +104,6 @@ func TestRingBufferPoller_Poll(t *testing.T) {
 						processor: jsonHandler,
 						timeout:   tt.fields.timeout,
 					}
-					//
-					//if err := p.Poll(); (err != nil) != tt.wantErr {
-					//	t.Errorf("Poll() error = %v, wantErr %v", err, tt.wantErr)
-					//}
 
 					pp := NewProgramPoller(100 * time.Millisecond)
 					pp.StartPolling("test", p.GetPollFunc(), func(err error) {

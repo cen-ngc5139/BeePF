@@ -5,7 +5,6 @@ import (
 
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/container"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
-	"github.com/cilium/ebpf/btf"
 )
 
 // NewEventExporterBuilder 创建新的构建器
@@ -98,11 +97,85 @@ func (b *EventExporterBuilder) BuildForSingleValue(
 
 // BuildForKeyValue 构建用于 key-value 的导出器
 func (b *EventExporterBuilder) BuildForKeyValue(
-	keyTypeID btf.TypeID,
-	valueTypeID btf.TypeID,
 	sampleConfig *meta.MapSampleMeta,
-	exportType *meta.ExportedTypesStructMeta,
+	exportKeyType *meta.ExportedTypesStructMeta,
+	exportValueType *meta.ExportedTypesStructMeta,
 	btfContainer *container.BTFContainer,
 ) (*EventExporter, error) {
-	return nil, nil
+	keyTypeDesc := &BTFTypeDescriptor{
+		Type: exportKeyType.Type,
+		Name: exportKeyType.Name,
+	}
+	valueTypeDesc := &BTFTypeDescriptor{
+		Type: exportValueType.Type,
+		Name: exportValueType.Name,
+	}
+
+	return b.BuildForKeyValueWithTypeDesc(
+		keyTypeDesc,
+		valueTypeDesc,
+		btfContainer,
+		sampleConfig,
+	)
+}
+
+func (b *EventExporterBuilder) BuildForKeyValueWithTypeDesc(
+	keyTypeDesc TypeDescriptor,
+	valueTypeDesc TypeDescriptor,
+	btfContainer *container.BTFContainer,
+	sampleConfig *meta.MapSampleMeta,
+) (*EventExporter, error) {
+	// 1. 参数验证
+	if btfContainer == nil {
+		return nil, fmt.Errorf("BTF container is required")
+	}
+	if keyTypeDesc == nil {
+		return nil, fmt.Errorf("key type descriptor is required")
+	}
+	if valueTypeDesc == nil {
+		return nil, fmt.Errorf("value type descriptor is required")
+	}
+
+	// 2. 构建已检查的导出成员
+	keyCheckedTypes, err := keyTypeDesc.BuildCheckedExportedMembers()
+	if err != nil {
+		return nil, fmt.Errorf("build key checked members error: %w", err)
+	}
+
+	valueCheckedTypes, err := valueTypeDesc.BuildCheckedExportedMembers()
+	if err != nil {
+		return nil, fmt.Errorf("build value checked members error: %w", err)
+	}
+
+	// 创建 EventExporter
+	exporter := &EventExporter{
+		BTFContainer:           btfContainer,
+		UserExportEventHandler: b.ExportEventHandler,
+		UserCtx:                b.UserCtx,
+	}
+
+	// 3. 创建内部处理器
+	var processor InternalSampleMapProcessor
+	switch b.ExportFormat {
+	case FormatJson:
+		processor = NewJsonMapExporter(exporter)
+	case FormatPlainText:
+		processor = NewPlainTextMapExporter(exporter)
+	case FormatRawEvent:
+		processor = NewRawMapExporter(exporter)
+	case FormatLog2Hist:
+		processor = NewLog2HistExporter(exporter)
+	default:
+		return nil, fmt.Errorf("unsupported export format: %v", b.ExportFormat)
+	}
+
+	// 4. 创建导出器
+	exporter.InternalImpl = &KeyValueMapProcessor{
+		Processor:         processor,
+		CheckedKeyTypes:   keyCheckedTypes,
+		CheckedValueTypes: valueCheckedTypes,
+		MapConfig:         sampleConfig,
+	}
+
+	return exporter, nil
 }
