@@ -76,7 +76,7 @@ func TestRingBufferPoller_Poll(t *testing.T) {
 						SetUserContext(export.NewUserContext(0)).
 						SetEventHandler(&export.MyCustomHandler{Logger: zaptest.NewLogger(t)})
 
-					structType, err := findStructType(v.Type())
+					structType, err := FindStructType(v.Type())
 					if err != nil {
 						t.Fatalf("failed to find struct type: %v", err)
 					}
@@ -100,9 +100,9 @@ func TestRingBufferPoller_Poll(t *testing.T) {
 					jsonHandler := export.NewJsonExportEventHandler(exporter)
 
 					p := &RingBufPoller{
-						reader:    perfReader,
-						processor: jsonHandler,
-						timeout:   tt.fields.timeout,
+						Reader:    perfReader,
+						Processor: jsonHandler,
+						Timeout:   tt.fields.timeout,
 					}
 
 					pp := NewProgramPoller(100 * time.Millisecond)

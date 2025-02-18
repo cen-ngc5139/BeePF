@@ -14,6 +14,7 @@ type ExporterInternalImplementation interface {
 	GetCheckedKeyTypes() ([]CheckedExportedMember, error)
 	GetCheckedValueTypes() ([]CheckedExportedMember, error)
 	Process(data []byte) error
+	ProcessMap(keyBuffer, valueBuffer []byte) error
 }
 
 // BufferValueProcessor Buffer 处理器实现
@@ -40,6 +41,10 @@ func (b *BufferValueProcessor) GetCheckedValueTypes() ([]CheckedExportedMember, 
 
 func (b *BufferValueProcessor) Process(data []byte) error {
 	return b.Processor.HandleEvent(data)
+}
+
+func (b *BufferValueProcessor) ProcessMap(keyBuffer, valueBuffer []byte) error {
+	return errors.New("buffer value processor does not support process map")
 }
 
 // KeyValueMapProcessor Map 处理器实现
@@ -69,6 +74,10 @@ func (k *KeyValueMapProcessor) GetCheckedValueTypes() ([]CheckedExportedMember, 
 	return k.CheckedValueTypes, nil
 }
 
+func (k *KeyValueMapProcessor) ProcessMap(keyBuffer, valueBuffer []byte) error {
+	return k.Processor.HandleEvent(keyBuffer, valueBuffer)
+}
+
 func (k *KeyValueMapProcessor) Process(data []byte) error {
-	return k.Processor.HandleEvent(data)
+	return errors.New("key value map processor does not support process")
 }

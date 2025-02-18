@@ -34,24 +34,24 @@ type Poller interface {
 
 // RingBufPoller ring buffer 轮询器
 type RingBufPoller struct {
-	reader    *ringbuf.Reader
-	processor EventProcessor
-	timeout   time.Duration
+	Reader    *ringbuf.Reader
+	Processor EventProcessor
+	Timeout   time.Duration
 }
 
 // PerfEventPoller perf event 轮询器
 type PerfEventPoller struct {
-	reader    *perf.Reader
-	processor EventProcessor
-	errorFlag atomic.Bool
-	timeout   time.Duration
+	Reader    *perf.Reader
+	Processor EventProcessor
+	ErrorFlag atomic.Bool
+	Timeout   time.Duration
 }
 
 // SampleMapPoller map 采样轮询器
 type SampleMapPoller struct {
-	bpfMap       *ebpf.Map
-	processor    SampleMapProcessor
-	sampleConfig *MapSampleConfig
+	BpfMap       *ebpf.Map
+	Processor    SampleMapProcessor
+	SampleConfig *MapSampleConfig
 }
 
 // MapSampleConfig map 采样配置
@@ -140,9 +140,9 @@ func NewRingBufPoller(bpfMap *ebpf.Map, processor EventProcessor, timeoutMs uint
 	}
 
 	return &RingBufPoller{
-		reader:    reader,
-		processor: processor,
-		timeout:   time.Duration(timeoutMs) * time.Millisecond,
+		Reader:    reader,
+		Processor: processor,
+		Timeout:   time.Duration(timeoutMs) * time.Millisecond,
 	}, nil
 }
 
@@ -154,7 +154,7 @@ func (p *RingBufPoller) GetPollFunc() PollFunc {
 
 // Poll 实现轮询方法
 func (p *RingBufPoller) Poll() error {
-	record, err := p.reader.Read()
+	record, err := p.Reader.Read()
 	if err != nil {
 		return fmt.Errorf("read ringbuf error: %w", err)
 	}
@@ -164,7 +164,7 @@ func (p *RingBufPoller) Poll() error {
 		return err
 	}
 
-	if err := p.processor.HandleEvent(record.RawSample); err != nil {
+	if err := p.Processor.HandleEvent(record.RawSample); err != nil {
 		return fmt.Errorf("handle event error: %w", err)
 	}
 
@@ -191,21 +191,21 @@ func NewPerfEventPoller(bpfMap *ebpf.Map, processor EventProcessor, timeoutMs ui
 	}
 
 	return &PerfEventPoller{
-		reader:    reader,
-		processor: processor,
-		timeout:   time.Duration(timeoutMs) * time.Millisecond,
+		Reader:    reader,
+		Processor: processor,
+		Timeout:   time.Duration(timeoutMs) * time.Millisecond,
 	}, nil
 }
 
 // Poll 实现轮询方法
 func (p *PerfEventPoller) Poll() error {
-	record, err := p.reader.Read()
+	record, err := p.Reader.Read()
 	if err != nil {
 		return fmt.Errorf("read perf event error: %w", err)
 	}
 
-	if err := p.processor.HandleEvent(record.RawSample); err != nil {
-		p.errorFlag.Store(true)
+	if err := p.Processor.HandleEvent(record.RawSample); err != nil {
+		p.ErrorFlag.Store(true)
 		return fmt.Errorf("handle event error: %w", err)
 	}
 
@@ -221,9 +221,9 @@ func (p *PerfEventPoller) GetPollFunc() PollFunc {
 // NewSampleMapPoller 创建 map 采样轮询器
 func NewSampleMapPoller(bpfMap *ebpf.Map, processor SampleMapProcessor, config *MapSampleConfig) *SampleMapPoller {
 	return &SampleMapPoller{
-		bpfMap:       bpfMap,
-		processor:    processor,
-		sampleConfig: config,
+		BpfMap:       bpfMap,
+		Processor:    processor,
+		SampleConfig: config,
 	}
 }
 
@@ -232,14 +232,14 @@ func (p *SampleMapPoller) Poll() error {
 	var key []byte
 	var value []byte
 
-	iter := p.bpfMap.Iterate()
+	iter := p.BpfMap.Iterate()
 	for iter.Next(&key, &value) {
-		if err := p.processor.HandleEvent(key, value); err != nil {
+		if err := p.Processor.HandleEvent(key, value); err != nil {
 			return fmt.Errorf("handle event error: %w", err)
 		}
 	}
 
-	time.Sleep(time.Duration(p.sampleConfig.Interval) * time.Millisecond)
+	time.Sleep(time.Duration(p.SampleConfig.Interval) * time.Millisecond)
 	return nil
 }
 
@@ -251,12 +251,12 @@ func (p *SampleMapPoller) GetPollFunc() PollFunc {
 
 // Close 清理资源
 func (p *SampleMapPoller) Close() error {
-	if p.sampleConfig.ClearMap {
+	if p.SampleConfig.ClearMap {
 		// 清理 map
 		var key []byte
-		iter := p.bpfMap.Iterate()
+		iter := p.BpfMap.Iterate()
 		for iter.Next(&key, nil) {
-			if err := p.bpfMap.Delete(key); err != nil {
+			if err := p.BpfMap.Delete(key); err != nil {
 				return fmt.Errorf("delete map entry error: %w", err)
 			}
 		}
@@ -265,25 +265,25 @@ func (p *SampleMapPoller) Close() error {
 }
 
 // findStructType 递归查找 BTF 中的结构体类型
-func findStructType(t btf.Type) (*btf.Struct, error) {
+func FindStructType(t btf.Type) (*btf.Struct, error) {
 	switch v := t.(type) {
 	case *btf.Struct:
 		// 直接是结构体类型
 		return v, nil
 	case *btf.Pointer:
 		// 如果是指针，查找其目标类型
-		return findStructType(v.Target)
+		return FindStructType(v.Target)
 	case *btf.Typedef:
 		// 如果是类型别名，查找原始类型
-		return findStructType(v.Type)
+		return FindStructType(v.Type)
 	case *btf.Volatile:
 		// 如果是 volatile 修饰，查找基础类型
-		return findStructType(v.Type)
+		return FindStructType(v.Type)
 	case *btf.Const:
 		// 如果是 const 修饰，查找基础类型
-		return findStructType(v.Type)
+		return FindStructType(v.Type)
 	case *btf.Var:
-		return findStructType(v.Type)
+		return FindStructType(v.Type)
 	default:
 		return nil, fmt.Errorf("unexpected type %T, cannot find struct", t)
 	}
