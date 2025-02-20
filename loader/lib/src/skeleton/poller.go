@@ -171,6 +171,10 @@ func (p *RingBufPoller) Poll() error {
 	return nil
 }
 
+func (p *RingBufPoller) Close() error {
+	return p.Reader.Close()
+}
+
 // 直接将字节数组保存为文件的辅助函数
 func saveRawBytes(filename string, data []byte) error {
 	// 确保目录存在
@@ -216,6 +220,10 @@ func (p *PerfEventPoller) GetPollFunc() PollFunc {
 	return func() error {
 		return p.Poll()
 	}
+}
+
+func (p *PerfEventPoller) Close() error {
+	return p.Reader.Close()
 }
 
 // NewSampleMapPoller 创建 map 采样轮询器
