@@ -20,3 +20,6 @@ build: elf
 
 dlv: build
 	dlv --headless --listen=:2345 --api-version=2 exec ./shepherd
+
+run:  build
+	./shepherd

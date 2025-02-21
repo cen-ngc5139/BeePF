@@ -63,6 +63,7 @@ type MapSampleConfig struct {
 type ProgramPoller struct {
 	// 轮询控制
 	stopChan chan struct{}
+	stopped  atomic.Bool // 添加状态标记
 	wg       sync.WaitGroup
 
 	// 错误处理
@@ -90,6 +91,11 @@ func (p *ProgramPoller) StartPolling(
 	pollFn PollFunc,
 	errorHandler func(error),
 ) {
+	// 检查是否已经停止
+	if p.stopped.Load() {
+		return
+	}
+
 	p.wg.Add(1)
 	go func() {
 		defer p.wg.Done()
@@ -123,8 +129,28 @@ func (p *ProgramPoller) StartPolling(
 
 // Stop 停止轮询
 func (p *ProgramPoller) Stop() {
+	// 1. 使用 CAS 避免重复停止
+	if !p.stopped.CompareAndSwap(false, true) {
+		return
+	}
+
+	// 2. 关闭停止信号通道
 	close(p.stopChan)
-	p.wg.Wait()
+
+	// 3. 添加超时控制
+	done := make(chan struct{})
+	go func() {
+		p.wg.Wait()
+		close(done)
+	}()
+
+	// 等待超时或完成
+	select {
+	case <-done:
+		return
+	case <-time.After(5 * time.Second):
+		log.Printf("Warning: timeout waiting for poller to stop")
+	}
 }
 
 // Errors 返回错误通道

@@ -3,7 +3,7 @@ module github.com/cen-ngc5139/BeePF/example/sched_wakeup
 go 1.22.4
 
 require (
-	github.com/cen-ngc5139/BeePF v0.0.1-rc1
+	github.com/cen-ngc5139/BeePF v0.0.1-rc4
 	github.com/cilium/ebpf v0.17.2
 	go.uber.org/zap v1.27.0
 )
