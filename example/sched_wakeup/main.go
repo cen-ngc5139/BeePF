@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
-	_ "net/http/pprof"
 	"time"
 
-	"github.com/cen-ngc5139/BeePF/example/sched_wakeup/loader"
+	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
 	"go.uber.org/zap"
 )
 
@@ -13,12 +11,10 @@ import (
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -type sched_latency_t -target $TARGET_GOARCH -go-package binary -output-dir ./binary -cc clang -no-strip Shepherd ./bpf/trace.c -- -I../headers -Wno-address-of-packed-member
 
 func main() {
-	fmt.Println("start")
-
 	// 初始化日志
 	logger, err := zap.NewDevelopment()
 	if err != nil {
-		fmt.Printf("初始化日志失败: %v\n", err)
+		logger.Fatal("初始化日志失败", zap.Error(err))
 		return
 	}
 	defer logger.Sync()
@@ -34,13 +30,13 @@ func main() {
 
 	err = bpfLoader.Init()
 	if err != nil {
-		fmt.Printf("初始化 BPF 加载器失败: %v\n", err)
+		logger.Fatal("初始化 BPF 加载器失败", zap.Error(err))
 		return
 	}
 
 	err = bpfLoader.Load()
 	if err != nil {
-		fmt.Printf("加载 BPF 程序失败: %v\n", err)
+		logger.Fatal("加载 BPF 程序失败", zap.Error(err))
 		return
 	}
 
@@ -48,11 +44,7 @@ func main() {
 		logger.Fatal("start failed", zap.Error(err))
 	}
 
-	// 等待退出信号，带超时
-	select {
-	case <-bpfLoader.Done():
-		logger.Info("clean shutdown")
-	case <-time.After(10 * time.Second):
-		logger.Error("shutdown timeout")
-	}
+	// 等待退出信号
+	<-bpfLoader.Done()
+	logger.Info("clean shutdown")
 }

@@ -1,5 +1,5 @@
-github.com/cen-ngc5139/BeePF v0.0.1-rc4 h1:N3p/4xACu1Z3tPTERyfEQwkDAwM18VKPgRdBS44D1tk=
-github.com/cen-ngc5139/BeePF v0.0.1-rc4/go.mod h1:w/uk3rK9Vjooo8WGC3kaEmt1y7oBg8j8tpaxVYpI2Os=
+github.com/cen-ngc5139/BeePF v0.0.1-rc5 h1:eu3JcVf8vbE7su9uvEPyBngrJ/pTN6x77Z5c8rhO8rY=
+github.com/cen-ngc5139/BeePF v0.0.1-rc5/go.mod h1:w/uk3rK9Vjooo8WGC3kaEmt1y7oBg8j8tpaxVYpI2Os=
 github.com/cilium/ebpf v0.17.2 h1:IQTaTVu0vKA8WTemFuBnxW9YbAwMkJVKHsNHW4lHv/g=
 github.com/cilium/ebpf v0.17.2/go.mod h1:9X5VAsIOck/nCAp0+nCSVzub1Q7x+zKXXItTMYfNE+E=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
