@@ -10,14 +10,11 @@ import (
 
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/container"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 
 	"github.com/cilium/ebpf"
-	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/link"
-	"github.com/cilium/ebpf/perf"
-	"github.com/cilium/ebpf/ringbuf"
 	"go.uber.org/zap"
 )
 
@@ -27,184 +24,7 @@ type Loader interface {
 	Load() error
 	Start() error
 	Stop() error
-}
-
-// MapHandler 定义 Map 处理器接口
-type MapHandler interface {
-	Type() ebpf.MapType
-	Setup(*ebpf.Map) (*skeleton.ProgramPoller, error)
-	SetCollection(*ebpf.Collection)
-	SetBTFContainer(*container.BTFContainer)
-	Close()
-}
-
-// BaseMapHandler 提供通用实现
-type BaseMapHandler struct {
-	Logger       *zap.Logger
-	Config       *Config
-	Collection   *ebpf.Collection
-	BTFContainer *container.BTFContainer
-	Poller       skeleton.Poller
-}
-
-// setupExporter 设置事件导出器
-func (h *BaseMapHandler) setupExporter(structType *btf.Struct) (*export.EventExporter, error) {
-	ee := export.NewEventExporterBuilder().
-		SetExportFormat(export.FormatJson).
-		SetUserContext(export.NewUserContext(0)).
-		SetEventHandler(&export.MyCustomHandler{Logger: h.Logger})
-
-	exporter, err := ee.BuildForSingleValueWithTypeDescriptor(
-		&export.BTFTypeDescriptor{
-			Type: structType,
-			Name: structType.TypeName(),
-		},
-		h.BTFContainer,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("build event exporter failed: %w", err)
-	}
-
-	return exporter, nil
-}
-
-// setupPoller 设置轮询器
-func (h *BaseMapHandler) setupPoller(poller skeleton.Poller) (*skeleton.ProgramPoller, error) {
-	h.Poller = poller
-	// 创建程序轮询器
-	programPoller := skeleton.NewProgramPoller(h.Config.PollTimeout)
-
-	// 启动轮询
-
-	programPoller.StartPolling(
-		h.Config.ProgramName,
-		poller.GetPollFunc(),
-		h.handlePollingError,
-	)
-
-	return programPoller, nil
-}
-
-// findTargetStruct 查找目标结构体
-func (h *BaseMapHandler) findTargetStruct() (*btf.Struct, error) {
-	for _, v := range h.Collection.Variables {
-		structType, err := skeleton.FindStructType(v.Type())
-		if err != nil {
-			h.Logger.Warn("find struct type failed", zap.Error(err))
-			continue
-		}
-
-		if structType.Name == h.Config.StructName {
-			return structType, nil
-		}
-	}
-	return nil, fmt.Errorf("target struct %s not found", h.Config.StructName)
-}
-
-// PerfEventMapHandler 实现
-type PerfEventMapHandler struct {
-	BaseMapHandler
-}
-
-func (h *PerfEventMapHandler) Type() ebpf.MapType {
-	return ebpf.PerfEventArray
-}
-
-func (h *PerfEventMapHandler) SetCollection(collection *ebpf.Collection) {
-	h.Collection = collection
-}
-
-func (h *PerfEventMapHandler) SetBTFContainer(btfContainer *container.BTFContainer) {
-	h.BTFContainer = btfContainer
-}
-
-func (h *PerfEventMapHandler) Setup(m *ebpf.Map) (*skeleton.ProgramPoller, error) {
-	// 创建读取器
-	reader, err := perf.NewReader(m, os.Getpagesize())
-	if err != nil {
-		return nil, fmt.Errorf("create perf reader failed: %w", err)
-	}
-
-	// 查找目标结构体
-	structType, err := h.findTargetStruct()
-	if err != nil {
-		return nil, err
-	}
-
-	// 设置导出器
-	exporter, err := h.setupExporter(structType)
-	if err != nil {
-		return nil, err
-	}
-
-	// 创建处理器
-	processor := export.NewJsonExportEventHandler(exporter)
-
-	poller := &skeleton.PerfEventPoller{
-		Reader:    reader,
-		Processor: processor,
-		Timeout:   h.Config.PollTimeout,
-	}
-
-	// 设置轮询器
-	return h.setupPoller(poller)
-}
-
-func (h *PerfEventMapHandler) Close() {
-	if h.Poller != nil {
-		h.Poller.Close()
-	}
-}
-
-// RingBufMapHandler 实现
-type RingBufMapHandler struct {
-	BaseMapHandler
-}
-
-func (h *RingBufMapHandler) Type() ebpf.MapType {
-	return ebpf.RingBuf
-}
-
-func (h *RingBufMapHandler) Setup(m *ebpf.Map) (*skeleton.ProgramPoller, error) {
-	// 创建读取器
-	reader, err := ringbuf.NewReader(m)
-	if err != nil {
-		return nil, fmt.Errorf("create ring buffer reader failed: %w", err)
-	}
-
-	// 使用相同的通用逻辑
-	structType, err := h.findTargetStruct()
-	if err != nil {
-		return nil, err
-	}
-
-	exporter, err := h.setupExporter(structType)
-	if err != nil {
-		return nil, err
-	}
-
-	processor := export.NewJsonExportEventHandler(exporter)
-	poller := &skeleton.RingBufPoller{
-		Reader:    reader,
-		Processor: processor,
-		Timeout:   h.Config.PollTimeout,
-	}
-
-	return h.setupPoller(poller)
-}
-
-func (h *RingBufMapHandler) Close() {
-	if h.Poller != nil {
-		h.Poller.Close()
-	}
-}
-
-func (h *RingBufMapHandler) SetCollection(collection *ebpf.Collection) {
-	h.Collection = collection
-}
-
-func (h *RingBufMapHandler) SetBTFContainer(btfContainer *container.BTFContainer) {
-	h.BTFContainer = btfContainer
+	Stats() error
 }
 
 // BPFLoader 实现 eBPF 程序加载器
@@ -219,16 +39,19 @@ type BPFLoader struct {
 	BTFContainer    *container.BTFContainer
 	Links           []link.Link
 	done            chan struct{}
+	StatsCollector  metrics.Collector
 }
 
 // Config 配置结构
 type Config struct {
-	ObjectPath  string
-	BTFPath     string
-	Logger      *zap.Logger
-	PollTimeout time.Duration
-	ProgramName string
-	StructName  string
+	ObjectPath    string
+	BTFPath       string
+	Logger        *zap.Logger
+	PollTimeout   time.Duration
+	ProgramName   string
+	StructName    string
+	IsEnableStats bool
+	StatsInterval time.Duration
 }
 
 func NewBPFLoader(cfg *Config) *BPFLoader {
@@ -236,6 +59,18 @@ func NewBPFLoader(cfg *Config) *BPFLoader {
 		Logger:      cfg.Logger,
 		Config:      cfg,
 		MapHandlers: make([]MapHandler, 0),
+	}
+
+	if cfg.IsEnableStats {
+		if cfg.StatsInterval == 0 {
+			cfg.StatsInterval = 1 * time.Second
+		}
+
+		collector, err := metrics.NewStatsCollector(cfg.StatsInterval)
+		if err != nil {
+			cfg.Logger.Error("failed to create stats collector", zap.Error(err))
+		}
+		loader.StatsCollector = collector
 	}
 
 	// 注册默认的 map 处理器
@@ -350,6 +185,14 @@ func (l *BPFLoader) Start() error {
 func (l *BPFLoader) Stop() error {
 	l.Logger.Info("starting cleanup process...")
 
+	l.Logger.Info("stopping stats collector")
+	if l.StatsCollector != nil {
+		err := l.StatsCollector.Stop()
+		if err != nil {
+			l.Logger.Error("failed to stop stats collector", zap.Error(err))
+		}
+	}
+
 	// 1. 先停止所有 poller，因为它们在使用 maps
 	l.Logger.Info("stopping pollers")
 	for _, p := range l.Pollers {
@@ -387,6 +230,14 @@ func (l *BPFLoader) Stop() error {
 	l.Links = nil
 	l.Collection = nil
 
+	return nil
+}
+
+func (l *BPFLoader) Stats() error {
+	l.Logger.Info("collecting stats")
+	if l.StatsCollector != nil {
+		return l.StatsCollector.Start()
+	}
 	return nil
 }
 
