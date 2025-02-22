@@ -235,10 +235,31 @@ func (l *BPFLoader) Stop() error {
 
 func (l *BPFLoader) Stats() error {
 	l.Logger.Info("collecting stats")
-	if l.StatsCollector != nil {
-		return l.StatsCollector.Start()
+
+	if l.StatsCollector == nil {
+		l.Logger.Info("stats collector is not enabled")
+		return nil
 	}
-	return nil
+
+	attachedPros := make(map[uint32]*ebpf.Program)
+	for _, prog := range l.Collection.Programs {
+		info, err := prog.Info()
+		if err != nil {
+			return fmt.Errorf("failed to get program info: %w", err)
+		}
+
+		id, ok := info.ID()
+		if !ok {
+			return fmt.Errorf("failed to get program id: %w", err)
+		}
+		attachedPros[uint32(id)] = prog
+	}
+
+	if err := l.StatsCollector.SetAttachedPros(attachedPros); err != nil {
+		return err
+	}
+
+	return l.StatsCollector.Start()
 }
 
 // handlePollingError 处理轮询错误

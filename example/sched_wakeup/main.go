@@ -20,10 +20,12 @@ func main() {
 	defer logger.Sync()
 
 	config := &loader.Config{
-		ObjectPath:  "./binary/shepherd_x86_bpfel.o",
-		Logger:      logger,
-		StructName:  "sched_latency_t",
-		PollTimeout: 100 * time.Millisecond,
+		ObjectPath:    "./binary/shepherd_x86_bpfel.o",
+		Logger:        logger,
+		StructName:    "sched_latency_t",
+		PollTimeout:   100 * time.Millisecond,
+		IsEnableStats: true,
+		StatsInterval: 1 * time.Second,
 	}
 
 	bpfLoader := loader.NewBPFLoader(config)
@@ -43,6 +45,26 @@ func main() {
 	if err := bpfLoader.Start(); err != nil {
 		logger.Fatal("start failed", zap.Error(err))
 	}
+
+	if err := bpfLoader.StatsCollector.Start(); err != nil {
+		logger.Fatal("start stats collector failed", zap.Error(err))
+	}
+
+	// 定时从 stats collector 中获取 stats 信息
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			programs, err := bpfLoader.StatsCollector.GetPrograms()
+			if err != nil {
+				logger.Error("获取 stats 信息失败", zap.Error(err))
+			}
+			for _, program := range programs {
+				logger.Info("program", zap.Any("program", program))
+			}
+		}
+	}()
 
 	// 等待退出信号
 	<-bpfLoader.Done()

@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/cilium/ebpf"
 )
 
@@ -22,6 +24,8 @@ type Collector interface {
 
 	// GetProgramStats 获取指定程序的统计信息
 	GetProgramStats(id uint32) (*Stats, error)
+
+	SetAttachedPros(map[uint32]*ebpf.Program) error
 }
 
 // collector 实现了 Collector 接口
@@ -178,5 +182,14 @@ func (c *StatsCollector) UpdateStats() error {
 		stats.Update(program)
 	}
 
+	return nil
+}
+
+func (c *StatsCollector) SetAttachedPros(attached map[uint32]*ebpf.Program) error {
+	if attached == nil {
+		return errors.Errorf("failed to set attached pros, attached is nil")
+	}
+
+	c.attachedPros = attached
 	return nil
 }
