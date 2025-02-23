@@ -45,7 +45,7 @@ func NewProgram(prog *ebpf.Program) *Program {
 		return nil
 	}
 
-	id, ok := info.BTFID()
+	id, ok := info.ID()
 	if !ok {
 		return nil
 	}

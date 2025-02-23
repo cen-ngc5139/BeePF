@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 	"go.uber.org/zap"
 )
 
@@ -34,6 +35,10 @@ func TestBPFLoader_Init(t *testing.T) {
 					PollTimeout:   100 * time.Millisecond,
 					IsEnableStats: true,
 					StatsInterval: 1 * time.Second,
+					// 设置用户自定义的 map 数据导出处理器
+					UserExporterHandler: &export.MyCustomHandler{
+						Logger: logger,
+					},
 				},
 			},
 		},
@@ -72,8 +77,14 @@ func TestBPFLoader_Init(t *testing.T) {
 					if err != nil {
 						logger.Error("获取 stats 信息失败", zap.Error(err))
 					}
+
 					for _, program := range programs {
-						logger.Info("program", zap.Any("program", program))
+						stats, err := bpfLoader.StatsCollector.GetProgramStats(program.ID)
+						if err != nil {
+							logger.Error("获取 stats 信息失败", zap.Error(err))
+						}
+
+						logger.Info("program", zap.Any("program", program), zap.Any("stats", stats))
 					}
 				}
 			}()

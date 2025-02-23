@@ -26,12 +26,13 @@ type MapHandler interface {
 
 // BaseMapHandler 提供通用实现
 type BaseMapHandler struct {
-	Logger       *zap.Logger
-	Config       *Config
-	Collection   *ebpf.Collection
-	BTFContainer *container.BTFContainer
-	Poller       skeleton.Poller
-	Stats        *metrics.Collector
+	Logger              *zap.Logger
+	Config              *Config
+	Collection          *ebpf.Collection
+	BTFContainer        *container.BTFContainer
+	Poller              skeleton.Poller
+	Stats               *metrics.Collector
+	UserExporterHandler export.EventHandler
 }
 
 // setupExporter 设置事件导出器
@@ -39,7 +40,7 @@ func (h *BaseMapHandler) setupExporter(structType *btf.Struct) (*export.EventExp
 	ee := export.NewEventExporterBuilder().
 		SetExportFormat(export.FormatJson).
 		SetUserContext(export.NewUserContext(0)).
-		SetEventHandler(&export.MyCustomHandler{Logger: h.Logger})
+		SetEventHandler(h.UserExporterHandler)
 
 	exporter, err := ee.BuildForSingleValueWithTypeDescriptor(
 		&export.BTFTypeDescriptor{

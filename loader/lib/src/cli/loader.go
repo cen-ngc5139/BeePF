@@ -12,6 +12,7 @@ import (
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
@@ -44,17 +45,23 @@ type BPFLoader struct {
 
 // Config 配置结构
 type Config struct {
-	ObjectPath    string
-	BTFPath       string
-	Logger        *zap.Logger
-	PollTimeout   time.Duration
-	ProgramName   string
-	StructName    string
-	IsEnableStats bool
-	StatsInterval time.Duration
+	ObjectPath          string
+	BTFPath             string
+	Logger              *zap.Logger
+	PollTimeout         time.Duration
+	ProgramName         string
+	StructName          string
+	IsEnableStats       bool
+	StatsInterval       time.Duration
+	UserExporterHandler export.EventHandler
 }
 
 func NewBPFLoader(cfg *Config) *BPFLoader {
+	if err := ValidateAndMutateConfig(cfg); err != nil {
+		cfg.Logger.Error("failed to validate and mutate config", zap.Error(err))
+		os.Exit(1)
+	}
+
 	loader := &BPFLoader{
 		Logger:      cfg.Logger,
 		Config:      cfg,
@@ -62,10 +69,6 @@ func NewBPFLoader(cfg *Config) *BPFLoader {
 	}
 
 	if cfg.IsEnableStats {
-		if cfg.StatsInterval == 0 {
-			cfg.StatsInterval = 1 * time.Second
-		}
-
 		collector, err := metrics.NewStatsCollector(cfg.StatsInterval)
 		if err != nil {
 			cfg.Logger.Error("failed to create stats collector", zap.Error(err))
@@ -76,15 +79,17 @@ func NewBPFLoader(cfg *Config) *BPFLoader {
 	// 注册默认的 map 处理器
 	loader.RegisterMapHandler(&PerfEventMapHandler{
 		BaseMapHandler: BaseMapHandler{
-			Logger: cfg.Logger,
-			Config: cfg,
+			Logger:              cfg.Logger,
+			Config:              cfg,
+			UserExporterHandler: cfg.UserExporterHandler,
 		},
 	})
 
 	loader.RegisterMapHandler(&RingBufMapHandler{
 		BaseMapHandler: BaseMapHandler{
-			Logger: cfg.Logger,
-			Config: cfg,
+			Logger:              cfg.Logger,
+			Config:              cfg,
+			UserExporterHandler: cfg.UserExporterHandler,
 		},
 	})
 
