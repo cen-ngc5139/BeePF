@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 	"go.uber.org/zap"
 )
@@ -39,6 +40,10 @@ func TestBPFLoader_Init(t *testing.T) {
 					UserExporterHandler: &export.MyCustomHandler{
 						Logger: logger,
 					},
+					// 设置用户自定义的 stats 数据导出处理器
+					UserMetricsHandler: &metrics.DefaultHandler{
+						Logger: logger,
+					},
 				},
 			},
 		},
@@ -67,27 +72,9 @@ func TestBPFLoader_Init(t *testing.T) {
 				logger.Fatal("start stats collector failed", zap.Error(err))
 			}
 
-			// 定时从 stats collector 中获取 stats 信息
-			go func() {
-				ticker := time.NewTicker(1 * time.Second)
-				defer ticker.Stop()
-
-				for range ticker.C {
-					programs, err := bpfLoader.StatsCollector.GetPrograms()
-					if err != nil {
-						logger.Error("获取 stats 信息失败", zap.Error(err))
-					}
-
-					for _, program := range programs {
-						stats, err := bpfLoader.StatsCollector.GetProgramStats(program.ID)
-						if err != nil {
-							logger.Error("获取 stats 信息失败", zap.Error(err))
-						}
-
-						logger.Info("program", zap.Any("program", program), zap.Any("stats", stats))
-					}
-				}
-			}()
+			if err := bpfLoader.Metrics(); err != nil {
+				logger.Fatal("export stats collector failed", zap.Error(err))
+			}
 
 			// 等待退出信号
 			<-bpfLoader.Done()

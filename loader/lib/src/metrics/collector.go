@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
 	"github.com/cilium/ebpf"
 )
@@ -26,6 +27,8 @@ type Collector interface {
 	GetProgramStats(id uint32) (*Stats, error)
 
 	SetAttachedPros(map[uint32]*ebpf.Program) error
+
+	Export() error
 }
 
 // collector 实现了 Collector 接口
@@ -53,10 +56,16 @@ type StatsCollector struct {
 
 	// BPF stats 的关闭器
 	closer io.Closer
+
+	// 导出器
+	exporterHandler Handler
+
+	// 日志记录器
+	logger *zap.Logger
 }
 
 // NewCollector 创建一个新的收集器实例
-func NewStatsCollector(interval time.Duration) (Collector, error) {
+func NewStatsCollector(interval time.Duration, exporterHandler Handler, logger *zap.Logger) (Collector, error) {
 	// 检查内核版本并启用 BPF stats
 	closer, err := EnableBPFStats()
 	if err != nil {
@@ -64,11 +73,13 @@ func NewStatsCollector(interval time.Duration) (Collector, error) {
 	}
 
 	c := &StatsCollector{
-		programs: make(map[uint32]*Program),
-		stats:    make(map[uint32]*Stats),
-		interval: interval,
-		stopCh:   make(chan struct{}),
-		closer:   closer,
+		programs:        make(map[uint32]*Program),
+		stats:           make(map[uint32]*Stats),
+		interval:        interval,
+		stopCh:          make(chan struct{}),
+		closer:          closer,
+		exporterHandler: exporterHandler,
+		logger:          logger,
 	}
 
 	return c, nil
@@ -191,5 +202,41 @@ func (c *StatsCollector) SetAttachedPros(attached map[uint32]*ebpf.Program) erro
 	}
 
 	c.attachedPros = attached
+	return nil
+}
+
+func (c *StatsCollector) Export() error {
+	if c.exporterHandler == nil {
+		return errors.Errorf("failed to export stats, exporter handler is nil")
+	}
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-c.stopCh:
+				return
+			case <-ticker.C:
+				programs, err := c.GetPrograms()
+				if err != nil {
+					c.logger.Error("获取 stats 信息失败", zap.Error(err))
+				}
+
+				for _, program := range programs {
+					stats, err := c.GetProgramStats(program.ID)
+					if err != nil {
+						c.logger.Error("获取 stats 信息失败", zap.Error(err))
+					}
+
+					if err := c.exporterHandler.Handle(stats); err != nil {
+						c.logger.Error("导出 stats 信息失败", zap.Error(err))
+					}
+				}
+			}
+		}
+	}()
+
 	return nil
 }

@@ -26,6 +26,7 @@ type Loader interface {
 	Start() error
 	Stop() error
 	Stats() error
+	Metrics() error
 }
 
 // BPFLoader 实现 eBPF 程序加载器
@@ -54,6 +55,7 @@ type Config struct {
 	IsEnableStats       bool
 	StatsInterval       time.Duration
 	UserExporterHandler export.EventHandler
+	UserMetricsHandler  metrics.Handler
 }
 
 func NewBPFLoader(cfg *Config) *BPFLoader {
@@ -69,7 +71,7 @@ func NewBPFLoader(cfg *Config) *BPFLoader {
 	}
 
 	if cfg.IsEnableStats {
-		collector, err := metrics.NewStatsCollector(cfg.StatsInterval)
+		collector, err := metrics.NewStatsCollector(cfg.StatsInterval, cfg.UserMetricsHandler, cfg.Logger)
 		if err != nil {
 			cfg.Logger.Error("failed to create stats collector", zap.Error(err))
 		}
@@ -265,6 +267,10 @@ func (l *BPFLoader) Stats() error {
 	}
 
 	return l.StatsCollector.Start()
+}
+
+func (l *BPFLoader) Metrics() error {
+	return l.StatsCollector.Export()
 }
 
 // handlePollingError 处理轮询错误
