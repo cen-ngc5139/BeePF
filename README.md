@@ -57,28 +57,58 @@ func main() {
 	defer logger.Sync()
 
 	config := &loader.Config{
+		// 设置 eBPF 程序对象文件路径
 		ObjectPath:  "./binary/shepherd_x86_bpfel.o",
+		// 设置日志记录器
 		Logger:      logger,
+		// 设置要处理的结构体名称
 		StructName:  "sched_latency_t",
+		// 设置轮询超时时间
 		PollTimeout: 100 * time.Millisecond,
+		// 设置是否启用 stats 收集
+		IsEnableStats: true,
+		// 设置 stats 收集间隔
+		StatsInterval: 1 * time.Second,
+			// 设置用户自定义的 map 数据导出处理器
+		UserExporterHandler: &export.MyCustomHandler{
+			Logger: logger,
+		},
+		// 设置用户自定义的 metrics 数据导出处理器
+		UserMetricsHandler: &metrics.DefaultHandler{
+			Logger: logger,
+		},
 	}
 
+	// 创建 BPF 加载器
 	bpfLoader := loader.NewBPFLoader(config)
 
+	// 初始化 BPF 加载器
 	err = bpfLoader.Init()
 	if err != nil {
 		logger.Fatal("初始化 BPF 加载器失败", zap.Error(err))
 		return
 	}
 
+	// 加载 eBPF 程序
 	err = bpfLoader.Load()
 	if err != nil {
 		logger.Fatal("加载 BPF 程序失败", zap.Error(err))
 		return
 	}
 
+	// 启动 eBPF 程序
 	if err := bpfLoader.Start(); err != nil {
 		logger.Fatal("start failed", zap.Error(err))
+	}
+
+	// 启动 stats 收集
+	if err := bpfLoader.Stats(); err != nil {
+		logger.Fatal("start stats collector failed", zap.Error(err))
+	}
+
+	// 启动 metrics 收集
+	if err := bpfLoader.Metrics(); err != nil {
+		logger.Fatal("start metrics failed", zap.Error(err))
 	}
 
 	// 等待退出信号
