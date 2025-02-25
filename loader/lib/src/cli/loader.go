@@ -56,6 +56,7 @@ type Config struct {
 	StatsInterval       time.Duration
 	UserExporterHandler export.EventHandler
 	UserMetricsHandler  metrics.Handler
+	ProgProperties      *meta.ProgProperties
 }
 
 func NewBPFLoader(cfg *Config) *BPFLoader {
@@ -95,6 +96,14 @@ func NewBPFLoader(cfg *Config) *BPFLoader {
 		},
 	})
 
+	loader.RegisterMapHandler(&SampleMapHandler{
+		BaseMapHandler: BaseMapHandler{
+			Logger:              cfg.Logger,
+			Config:              cfg,
+			UserExporterHandler: cfg.UserExporterHandler,
+		},
+	})
+
 	return loader
 }
 
@@ -108,8 +117,13 @@ func (l *BPFLoader) Init() error {
 		return fmt.Errorf("generate composed object failed: %w", err)
 	}
 
+	runnerConfig := &meta.RunnerConfig{
+		ProgProperties: l.Config.ProgProperties,
+	}
+
 	// 构建预加载骨架
-	preLoadSkeleton, err := skeleton.FromJsonPackage(pkg, filepath.Dir(l.Config.ObjectPath)).Build()
+	preLoadSkeleton, err := skeleton.FromJsonPackage(pkg, filepath.Dir(l.Config.ObjectPath)).
+		SetRunnerConfig(runnerConfig).Build()
 	if err != nil {
 		return fmt.Errorf("build preload skeleton failed: %w", err)
 	}
@@ -143,24 +157,101 @@ func (l *BPFLoader) RegisterMapHandler(handler MapHandler) {
 	l.MapHandlers = append(l.MapHandlers, handler)
 }
 
+// GetMapHandlerByType 根据 map 类型返回对应的 MapHandler
+func (l *BPFLoader) GetMapHandlerByType(mapType ebpf.MapType) MapHandler {
+	// 根据特定类型返回对应的处理器
+	switch mapType {
+	case ebpf.PerfEventArray:
+		for _, handler := range l.MapHandlers {
+			if _, ok := handler.(*PerfEventMapHandler); ok {
+				return handler
+			}
+		}
+	case ebpf.RingBuf:
+		for _, handler := range l.MapHandlers {
+			if _, ok := handler.(*RingBufMapHandler); ok {
+				return handler
+			}
+		}
+	default:
+		// 对于其他类型，查找 SampleMapHandler
+		for _, handler := range l.MapHandlers {
+			if _, ok := handler.(*SampleMapHandler); ok {
+				return handler
+			}
+		}
+	}
+
+	// 如果没有任何处理器，返回 nil
+	return nil
+}
+
+func (l *BPFLoader) GetMapSpecByType(name string) *ebpf.MapSpec {
+	mapSpec, ok := l.PreLoadSkeleton.Spec.Maps[name]
+	if !ok {
+		return nil
+	}
+	return mapSpec
+}
+
+// isSkipMap 判断是否需要跳过某些特殊的 map
+func isSkipMap(name string) bool {
+	// 需要跳过的特殊 map 名称列表
+	skipMaps := []string{
+		".bss",
+		".rodata",
+		".data",
+		".kconfig",
+		"license",
+		".maps",
+		".BTF",
+	}
+
+	for _, skipName := range skipMaps {
+		if name == skipName {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Start 启动阶段
 func (l *BPFLoader) Start() error {
 	l.Logger.Info("starting BPF programs...")
 
 	// 处理所有 maps
 	for _, m := range l.Collection.Maps {
+		info, err := m.Info()
+		if err != nil {
+			l.Logger.Error("failed to get map info", zap.String("map name", m.String()), zap.Error(err))
+			continue
+		}
+
+		if isSkipMap(info.Name) {
+			l.Logger.Info("skip map", zap.String("map name", m.String()))
+			continue
+		}
+
 		// 查找对应的处理器
-		for _, handler := range l.MapHandlers {
-			if handler.Type() == m.Type() {
-				poller, err := handler.Setup(m)
-				if err != nil {
-					return fmt.Errorf("setup map handler failed: %w", err)
-				}
-				if poller != nil {
-					l.Pollers = append(l.Pollers, poller)
-				}
-				break
-			}
+		handler := l.GetMapHandlerByType(m.Type())
+		if handler == nil {
+			l.Logger.Error("map handler not found", zap.String("map name", m.String()))
+			continue
+		}
+
+		spec := l.GetMapSpecByType(info.Name)
+		if spec == nil {
+			l.Logger.Error("map spec not found", zap.String("map name", m.String()))
+			continue
+		}
+
+		poller, err := handler.Setup(spec, m)
+		if err != nil {
+			return fmt.Errorf("setup map handler failed: %w", err)
+		}
+		if poller != nil {
+			l.Pollers = append(l.Pollers, poller)
 		}
 	}
 

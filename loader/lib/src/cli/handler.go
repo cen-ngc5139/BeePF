@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/container"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
@@ -18,7 +19,7 @@ import (
 // MapHandler 定义 Map 处理器接口
 type MapHandler interface {
 	Type() ebpf.MapType
-	Setup(*ebpf.Map) (*skeleton.ProgramPoller, error)
+	Setup(*ebpf.MapSpec, *ebpf.Map) (*skeleton.ProgramPoller, error)
 	SetCollection(*ebpf.Collection)
 	SetBTFContainer(*container.BTFContainer)
 	Close()
@@ -29,6 +30,7 @@ type BaseMapHandler struct {
 	Logger              *zap.Logger
 	Config              *Config
 	Collection          *ebpf.Collection
+	MapSpec             *ebpf.MapSpec
 	BTFContainer        *container.BTFContainer
 	Poller              skeleton.Poller
 	Stats               *metrics.Collector
@@ -48,6 +50,30 @@ func (h *BaseMapHandler) setupExporter(structType *btf.Struct) (*export.EventExp
 			Name: structType.TypeName(),
 		},
 		h.BTFContainer,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("build event exporter failed: %w", err)
+	}
+
+	return exporter, nil
+}
+
+func (h *BaseMapHandler) setupKeyValueExporter(m *ebpf.MapSpec) (*export.EventExporter, error) {
+	ee := export.NewEventExporterBuilder().
+		SetExportFormat(export.FormatJson).
+		SetUserContext(export.NewUserContext(0)).
+		SetEventHandler(h.UserExporterHandler)
+
+	exporter, err := ee.BuildForKeyValueWithTypeDesc(
+		export.NewBTFTypeDescriptor(m.Key, m.Key.TypeName()),
+		export.NewBTFTypeDescriptor(m.Value, m.Value.TypeName()),
+		h.BTFContainer,
+		&meta.MapSampleMeta{
+			Interval: 1000,
+			Type:     meta.SampleMapTypeDefaultKV,
+			Unit:     "us",
+			ClearMap: true,
+		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("build event exporter failed: %w", err)
@@ -106,7 +132,7 @@ func (h *PerfEventMapHandler) SetBTFContainer(btfContainer *container.BTFContain
 	h.BTFContainer = btfContainer
 }
 
-func (h *PerfEventMapHandler) Setup(m *ebpf.Map) (*skeleton.ProgramPoller, error) {
+func (h *PerfEventMapHandler) Setup(spec *ebpf.MapSpec, m *ebpf.Map) (*skeleton.ProgramPoller, error) {
 	// 创建读取器
 	reader, err := perf.NewReader(m, os.Getpagesize())
 	if err != nil {
@@ -153,7 +179,7 @@ func (h *RingBufMapHandler) Type() ebpf.MapType {
 	return ebpf.RingBuf
 }
 
-func (h *RingBufMapHandler) Setup(m *ebpf.Map) (*skeleton.ProgramPoller, error) {
+func (h *RingBufMapHandler) Setup(spec *ebpf.MapSpec, m *ebpf.Map) (*skeleton.ProgramPoller, error) {
 	// 创建读取器
 	reader, err := ringbuf.NewReader(m)
 	if err != nil {
@@ -193,4 +219,45 @@ func (h *RingBufMapHandler) SetCollection(collection *ebpf.Collection) {
 
 func (h *RingBufMapHandler) SetBTFContainer(btfContainer *container.BTFContainer) {
 	h.BTFContainer = btfContainer
+}
+
+type SampleMapHandler struct {
+	BaseMapHandler
+}
+
+func (s *SampleMapHandler) Type() ebpf.MapType {
+	return ebpf.Array
+}
+
+func (s *SampleMapHandler) Setup(spec *ebpf.MapSpec, m *ebpf.Map) (*skeleton.ProgramPoller, error) {
+	exporter, err := s.setupKeyValueExporter(spec)
+	if err != nil {
+		return nil, err
+	}
+
+	processor := export.NewJsonMapExporter(exporter)
+	poller := &skeleton.SampleMapPoller{
+		BpfMap:    m,
+		Processor: processor,
+		SampleConfig: &skeleton.MapSampleConfig{
+			Interval: 1000,
+			ClearMap: true,
+		},
+	}
+
+	return s.setupPoller(poller)
+}
+
+func (s *SampleMapHandler) Close() {
+	if s.Poller != nil {
+		s.Poller.Close()
+	}
+}
+
+func (s *SampleMapHandler) SetCollection(collection *ebpf.Collection) {
+	s.Collection = collection
+}
+
+func (s *SampleMapHandler) SetBTFContainer(btfContainer *container.BTFContainer) {
+	s.BTFContainer = btfContainer
 }

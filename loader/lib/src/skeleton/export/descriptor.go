@@ -24,13 +24,33 @@ func (b *BTFTypeDescriptor) BuildCheckedExportedMembers() ([]CheckedExportedMemb
 		return nil, fmt.Errorf("type name mismatch: %s != %s", b.Type.TypeName(), b.Name)
 	}
 
-	// 获取结构体信息
-	st, ok := b.Type.(*btf.Struct)
-	if !ok {
-		return nil, fmt.Errorf("type %s is not struct", b.Type.TypeName())
+	// 处理结构体类型
+	if st, ok := b.Type.(*btf.Struct); ok {
+		return b.buildStructMembers(st)
 	}
 
-	// 构建导出成员
+	// 处理非结构体类型（如 map 的 key 或 value）
+	size, err := btf.Sizeof(b.Type)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get size of type %s: %w", b.Name, err)
+	}
+
+	// 对于非结构体类型，创建单个成员表示整个类型
+	result := []CheckedExportedMember{
+		{
+			FieldName:          b.Name,
+			Type:               b.Type,
+			BitOffset:          0,
+			Size:               btf.Bits(size * 8), // 转换为比特
+			OutputHeaderOffset: 0,
+		},
+	}
+
+	return result, nil
+}
+
+// buildStructMembers 处理结构体类型的成员
+func (b *BTFTypeDescriptor) buildStructMembers(st *btf.Struct) ([]CheckedExportedMember, error) {
 	var result []CheckedExportedMember
 	for _, member := range st.Members {
 		// 检查位域
@@ -47,7 +67,7 @@ func (b *BTFTypeDescriptor) BuildCheckedExportedMembers() ([]CheckedExportedMemb
 			FieldName:          member.Name,
 			Type:               member.Type,
 			BitOffset:          btf.Bits(member.Offset),
-			Size:               btf.Bits(size),
+			Size:               btf.Bits(size * 8), // 转换为比特
 			OutputHeaderOffset: 0,
 		})
 	}

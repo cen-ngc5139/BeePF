@@ -190,7 +190,13 @@ func needsLink(progType ebpf.ProgramType) bool {
 		ebpf.SkLookup,
 		ebpf.Syscall,
 		ebpf.Tracing,
-		ebpf.PerfEvent:
+		ebpf.PerfEvent,
+		ebpf.CGroupSKB,
+		ebpf.CGroupDevice,
+		ebpf.CGroupSysctl,
+		ebpf.CGroupSock,
+		ebpf.CGroupSockAddr,
+		ebpf.CGroupSockopt:
 		return true
 	default:
 		return false

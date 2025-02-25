@@ -9,7 +9,7 @@ import (
 )
 
 // AttachProgram 根据程序类型选择合适的 attach 方式
-func (p *ProgMeta) AttachProgram(spec *ebpf.ProgramSpec, program *ebpf.Program) (link.Link, error) {
+func (p *ProgMeta) AttachProgram(spec *ebpf.ProgramSpec, program *ebpf.Program, properties *ProgProperties) (link.Link, error) {
 	switch spec.Type {
 	case ebpf.UnspecifiedProgram:
 		return nil, fmt.Errorf("error:%v, %s", ErrSectionFormat, "invalid program type, make sure to use the right section prefix")
@@ -18,7 +18,7 @@ func (p *ProgMeta) AttachProgram(spec *ebpf.ProgramSpec, program *ebpf.Program) 
 	case ebpf.TracePoint:
 		return p.attachTracepoint(program)
 	case ebpf.CGroupDevice, ebpf.CGroupSKB, ebpf.CGroupSock, ebpf.SockOps, ebpf.CGroupSockAddr, ebpf.CGroupSockopt, ebpf.CGroupSysctl:
-		return p.attachCGroup()
+		return p.attachCGroup(program, spec.AttachType, properties.CGroupPath)
 	case ebpf.SocketFilter:
 		return p.attachSocket()
 	case ebpf.SchedCLS:
@@ -93,8 +93,22 @@ func (p *ProgMeta) attachTracepoint(program *ebpf.Program) (link.Link, error) {
 	return kp, nil
 }
 
-func (p *ProgMeta) attachCGroup() (link.Link, error) {
-	return nil, nil
+func (p *ProgMeta) attachCGroup(program *ebpf.Program, typ ebpf.AttachType, cgroupPath string) (link.Link, error) {
+	if cgroupPath == "" {
+		return nil, fmt.Errorf("prog %s invalid cgroupPath", p.Name)
+	}
+
+	opts := link.CgroupOptions{
+		Path:    cgroupPath,
+		Attach:  typ,
+		Program: program,
+	}
+	kp, err := link.AttachCgroup(opts)
+	if err != nil {
+		return nil, fmt.Errorf("error:%v ,failed to attach program %s to cgroup %s, attach type:%s", err, p.Name, p.Attach, typ.String())
+	}
+
+	return kp, nil
 }
 
 func (p *ProgMeta) attachSocket() (link.Link, error) {

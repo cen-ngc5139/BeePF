@@ -13,11 +13,11 @@ import (
 // ⚠️ 该单元测试需要使用 IDE 远程单元测试，通过 ssh 连接到目标 linux 机器上运行
 func TestProgMeta_AttachProgram(t *testing.T) {
 	type fields struct {
-		BinaryPath string
-		Name       string
-		Attach     string
-		Link       bool
-		Others     map[string]interface{}
+		BinaryPath     string
+		Name           string
+		Attach         string
+		Link           bool
+		ProgProperties *ProgProperties
 	}
 	type args struct {
 		spec    *ebpf.ProgramSpec
@@ -37,6 +37,9 @@ func TestProgMeta_AttachProgram(t *testing.T) {
 				Name:       "sched_wakeup",
 				Attach:     "tp_btf/sched_wakeup",
 				Link:       true,
+				ProgProperties: &ProgProperties{
+					CGroupPath: "/sys/fs/cgroup/bpf",
+				},
 			},
 			args: args{
 				spec:    &ebpf.ProgramSpec{},
@@ -83,9 +86,8 @@ func TestProgMeta_AttachProgram(t *testing.T) {
 				Name:   tt.fields.Name,
 				Attach: tt.fields.Attach,
 				Link:   tt.fields.Link,
-				Others: tt.fields.Others,
 			}
-			got, err := p.AttachProgram(progSpec, prog)
+			got, err := p.AttachProgram(progSpec, prog, tt.fields.ProgProperties)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("AttachProgram() error = %v, wantErr %v", err, tt.wantErr)
 				return
