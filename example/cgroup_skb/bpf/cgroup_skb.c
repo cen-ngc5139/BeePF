@@ -38,6 +38,7 @@ struct
     __uint(max_entries, 1024);
 } link_begin SEC(".maps");
 
+// 需要通过 bpf2go 将该结构体转换为 Go 结构体，同时在 ebpf.Collection.Variables 中添加该结构体
 struct span_info *unused_span_info __attribute__((unused));
 
 SEC("cgroup_skb/egress")

@@ -4,14 +4,15 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
-	"go.uber.org/zap"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
+	"go.uber.org/zap"
 )
 
 func TestBPFLoader_Init(t *testing.T) {
@@ -63,28 +64,51 @@ func TestBPFLoader_Init(t *testing.T) {
 			},
 		},
 
-		//{
-		//	name: "cgroup_skb",
-		//	fields: fields{
-		//		Config: &Config{
-		//			ObjectPath:    "../../../../example/cgroup_skb/binary/cgroup_skb_x86_bpfel.o",
-		//			Logger:        logger,
-		//			StructName:    "cgroup_skb_t",
-		//			PollTimeout:   100 * time.Millisecond,
-		//			IsEnableStats: true,
-		//			StatsInterval: 1 * time.Second,
-		//			ProgProperties: &meta.ProgProperties{
-		//				CGroupPath: cgroupPath,
-		//			},
-		//			UserExporterHandler: &export.MyCustomHandler{
-		//				Logger: logger,
-		//			},
-		//			UserMetricsHandler: &metrics.DefaultHandler{
-		//				Logger: logger,
-		//			},
-		//		},
-		//	},
-		//},
+		{
+			name: "cgroup_skb",
+			fields: fields{
+				Config: &Config{
+					ObjectPath:    "../../../../example/cgroup_skb/binary/cgroup_skb_x86_bpfel.o",
+					Logger:        logger,
+					StructName:    "cgroup_skb_t",
+					PollTimeout:   100 * time.Millisecond,
+					IsEnableStats: true,
+					StatsInterval: 1 * time.Second,
+					ProgProperties: &meta.ProgProperties{
+						CGroupPath: cgroupPath,
+					},
+					UserExporterHandler: &export.MyCustomHandler{
+						Logger: logger,
+					},
+					UserMetricsHandler: &metrics.DefaultHandler{
+						Logger: logger,
+					},
+				},
+			},
+		},
+
+		{
+			name: "fentry",
+			fields: fields{
+				Config: &Config{
+					ObjectPath:    "../../../../example/fentry/binary/fentry_x86_bpfel.o",
+					Logger:        logger,
+					StructName:    "event",
+					PollTimeout:   100 * time.Millisecond,
+					IsEnableStats: true,
+					StatsInterval: 1 * time.Second,
+					ProgProperties: &meta.ProgProperties{
+						CGroupPath: cgroupPath,
+					},
+					UserExporterHandler: &export.MyCustomHandler{
+						Logger: logger,
+					},
+					UserMetricsHandler: &metrics.DefaultHandler{
+						Logger: logger,
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

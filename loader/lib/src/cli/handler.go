@@ -112,7 +112,8 @@ func (h *BaseMapHandler) findTargetStruct() (*btf.Struct, error) {
 			return structType, nil
 		}
 	}
-	return nil, fmt.Errorf("target struct %s not found", h.Config.StructName)
+	return nil, fmt.Errorf("目标结构体 %s 未找到。请检查：\n1. eBPF C 代码中是否正确定义了该结构体\n2. 是否添加了未使用的指针声明 'struct %s *unused_%s __attribute__((unused))'\n3. Config.StructName 是否与 C 代码中的结构体名称一致",
+		h.Config.StructName, h.Config.StructName, h.Config.StructName)
 }
 
 // PerfEventMapHandler 实现
