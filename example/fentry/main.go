@@ -38,7 +38,7 @@ func main() {
 	config := &loader.Config{
 		ObjectPath:    "./binary/fentry_x86_bpfel.o",
 		Logger:        logger,
-		StructName:    "pkt_count",
+		StructName:    "event",
 		PollTimeout:   100 * time.Millisecond,
 		IsEnableStats: true,
 		StatsInterval: 1 * time.Second,

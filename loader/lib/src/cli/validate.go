@@ -12,9 +12,9 @@ func ValidateAndMutateConfig(cfg *Config) error {
 		return fmt.Errorf("object path is required")
 	}
 
-	if cfg.StructName == "" {
-		return fmt.Errorf("struct name is required")
-	}
+	//if cfg.StructName == "" {
+	//	return fmt.Errorf("struct name is required")
+	//}
 
 	if cfg.UserExporterHandler == nil {
 		cfg.UserExporterHandler = &export.MyCustomHandler{

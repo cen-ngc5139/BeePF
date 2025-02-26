@@ -14,8 +14,8 @@ struct
     __type(value, u64);
 } kprobe_map SEC(".maps");
 
-SEC("kprobe/sys_execve")
-int kprobe_execve()
+SEC("kprobe/rpc_exit_task")
+int rpc_exit_task(struct pt_regs *regs)
 {
     u32 key = 0;
     u64 initval = 1, *valp;

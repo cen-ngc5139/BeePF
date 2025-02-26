@@ -54,7 +54,7 @@ type kprobeSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type kprobeProgramSpecs struct {
-	KprobeExecve *ebpf.ProgramSpec `ebpf:"kprobe_execve"`
+	RpcExitTask *ebpf.ProgramSpec `ebpf:"rpc_exit_task"`
 }
 
 // kprobeMapSpecs contains maps before they are loaded into the kernel.
@@ -109,12 +109,12 @@ type kprobeVariables struct {
 //
 // It can be passed to loadKprobeObjects or ebpf.CollectionSpec.LoadAndAssign.
 type kprobePrograms struct {
-	KprobeExecve *ebpf.Program `ebpf:"kprobe_execve"`
+	RpcExitTask *ebpf.Program `ebpf:"rpc_exit_task"`
 }
 
 func (p *kprobePrograms) Close() error {
 	return _KprobeClose(
-		p.KprobeExecve,
+		p.RpcExitTask,
 	)
 }
 

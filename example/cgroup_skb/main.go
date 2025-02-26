@@ -1,9 +1,14 @@
 package main
 
 import (
+	"bufio"
+	"errors"
+	"os"
+	"strings"
 	"time"
 
 	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 	"go.uber.org/zap"
@@ -21,6 +26,12 @@ func main() {
 	}
 	defer logger.Sync()
 
+	cgroupPath, err := detectCgroupPath()
+	if err != nil {
+		logger.Fatal("检测 cgroup 路径失败", zap.Error(err))
+		return
+	}
+
 	config := &loader.Config{
 		ObjectPath:    "./binary/cgroup_skb_x86_bpfel.o",
 		Logger:        logger,
@@ -28,6 +39,9 @@ func main() {
 		PollTimeout:   100 * time.Millisecond,
 		IsEnableStats: true,
 		StatsInterval: 1 * time.Second,
+		ProgProperties: &meta.ProgProperties{
+			CGroupPath: cgroupPath,
+		},
 		// 设置用户自定义的 map 数据导出处理器
 		UserExporterHandler: &export.MyCustomHandler{
 			Logger: logger,
@@ -66,4 +80,25 @@ func main() {
 	// 等待退出信号
 	<-bpfLoader.Done()
 	logger.Info("clean shutdown")
+}
+
+// detectCgroupPath returns the first-found mount point of type cgroup2
+// and stores it in the cgroupPath global variable.
+func detectCgroupPath() (string, error) {
+	f, err := os.Open("/proc/mounts")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		// example fields: cgroup2 /sys/fs/cgroup/unified cgroup2 rw,nosuid,nodev,noexec,relatime 0 0
+		fields := strings.Split(scanner.Text(), " ")
+		if len(fields) >= 3 && fields[2] == "cgroup2" {
+			return fields[1], nil
+		}
+	}
+
+	return "", errors.New("cgroup2 not mounted")
 }
