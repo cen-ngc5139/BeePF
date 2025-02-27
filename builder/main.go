@@ -48,6 +48,7 @@ import (
 
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
+	meta "github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 
 	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
 	"go.uber.org/zap"
@@ -71,6 +72,9 @@ func main() {
 		PollTimeout:   100 * time.Millisecond,
 		IsEnableStats: true,
 		StatsInterval: 1 * time.Second,
+		ProgProperties: &meta.ProgProperties{
+			CGroupPath: "/sys/fs/cgroup/unified",
+		},
 		// 设置用户自定义的 map 数据导出处理器
 		UserExporterHandler: &export.MyCustomHandler{
 			Logger: logger,
@@ -143,112 +147,28 @@ struct {{.StructName}} {
 // 确保结构体类型信息被保留在 BTF 中
 struct {{.StructName}} *unused_{{.StructNameLower}} __attribute__((unused));
 
-// 定义 Ring Buffer
-struct {
-    __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, 1 << 24);
-} events SEC(".maps");
-
-{{if eq .ProgramType "cgroup_skb"}}
-SEC("cgroup_skb/egress")
-int {{.HandlerName}}(struct __sk_buff *skb)
+struct
 {
-    u32 key = 0;
-    u64 init_val = 1;
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 1);
+    __type(key, u32);
+    __type(value, u64);
+} kprobe_map SEC(".maps");
 
-    u64 *count = bpf_map_lookup_elem(&{{.MapName}}, &key);
-    if (!count) {
-        bpf_map_update_elem(&{{.MapName}}, &key, &init_val, BPF_ANY);
-        return 1;
-    }
-    __sync_fetch_and_add(count, 1);
-
-    // 创建事件
-    struct {{.StructName}} *event;
-    event = bpf_ringbuf_reserve(&events, sizeof(struct {{.StructName}}), 0);
-    if (!event) {
-        return 1;
-    }
-
-    // 填充事件数据
-    event->timestamp = bpf_ktime_get_ns();
-    event->pid = bpf_get_current_pid_tgid() >> 32;
-    event->tid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
-    bpf_get_current_comm(&event->comm, sizeof(event->comm));
-    event->counter = *count;
-
-    // 提交事件
-    bpf_ringbuf_submit(event, 0);
-
-    return 1;
-}
-{{else if eq .ProgramType "fentry"}}
-SEC("fentry/tcp_connect")
-int {{.HandlerName}}(struct sock *sk)
+{{if eq .ProgramType "kprobe"}}
+SEC("kprobe/rpc_exit_task")
+int {{.HandlerName}}(struct pt_regs *regs)
 {
-    if (sk->__sk_common.skc_family != 2) { // AF_INET
+        u32 key = 0;
+    u64 initval = 1, *valp;
+
+    valp = bpf_map_lookup_elem(&kprobe_map, &key);
+    if (!valp)
+    {
+        bpf_map_update_elem(&kprobe_map, &key, &initval, BPF_ANY);
         return 0;
     }
-
-    u32 key = 0;
-    u64 init_val = 1;
-
-    u64 *count = bpf_map_lookup_elem(&{{.MapName}}, &key);
-    if (!count) {
-        bpf_map_update_elem(&{{.MapName}}, &key, &init_val, BPF_ANY);
-    } else {
-        __sync_fetch_and_add(count, 1);
-    }
-
-    // 创建事件
-    struct {{.StructName}} *event;
-    event = bpf_ringbuf_reserve(&events, sizeof(struct {{.StructName}}), 0);
-    if (!event) {
-        return 0;
-    }
-
-    // 填充事件数据
-    event->timestamp = bpf_ktime_get_ns();
-    event->pid = bpf_get_current_pid_tgid() >> 32;
-    event->tid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
-    bpf_get_current_comm(&event->comm, sizeof(event->comm));
-    event->counter = count ? *count : init_val;
-
-    // 提交事件
-    bpf_ringbuf_submit(event, 0);
-
-    return 0;
-}
-{{else if eq .ProgramType "tracepoint"}}
-SEC("tracepoint/syscalls/sys_enter_write")
-int {{.HandlerName}}(void *ctx)
-{
-    u32 key = 0;
-    u64 init_val = 1;
-
-    u64 *count = bpf_map_lookup_elem(&{{.MapName}}, &key);
-    if (!count) {
-        bpf_map_update_elem(&{{.MapName}}, &key, &init_val, BPF_ANY);
-    } else {
-        __sync_fetch_and_add(count, 1);
-    }
-
-    // 创建事件
-    struct {{.StructName}} *event;
-    event = bpf_ringbuf_reserve(&events, sizeof(struct {{.StructName}}), 0);
-    if (!event) {
-        return 0;
-    }
-
-    // 填充事件数据
-    event->timestamp = bpf_ktime_get_ns();
-    event->pid = bpf_get_current_pid_tgid() >> 32;
-    event->tid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
-    bpf_get_current_comm(&event->comm, sizeof(event->comm));
-    event->counter = count ? *count : init_val;
-
-    // 提交事件
-    bpf_ringbuf_submit(event, 0);
+    __sync_fetch_and_add(valp, 1);
 
     return 0;
 }
@@ -271,18 +191,16 @@ type ProjectConfig struct {
 func main() {
 	// 解析命令行参数
 	projectName := flag.String("name", "my-ebpf-project", "项目名称")
-	programType := flag.String("type", "cgroup_skb", "程序类型 (cgroup_skb, fentry, tracepoint)")
-	structName := flag.String("struct", "", "事件结构体名称 (可选)")
+	programType := flag.String("type", "kprobe", "程序类型 (kprobe)")
+	structName := flag.String("struct", "event", "事件结构体名称 (可选)")
 	flag.Parse()
 
 	// 验证程序类型
 	validTypes := map[string]bool{
-		"cgroup_skb": true,
-		"fentry":     true,
-		"tracepoint": true,
+		"kprobe": true,
 	}
 	if !validTypes[*programType] {
-		fmt.Printf("错误: 不支持的程序类型 '%s'。支持的类型: cgroup_skb, fentry, tracepoint\n", *programType)
+		fmt.Printf("错误: 不支持的程序类型 '%s'。支持的类型: kprobe\n", *programType)
 		os.Exit(1)
 	}
 
