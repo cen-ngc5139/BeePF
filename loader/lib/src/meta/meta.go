@@ -356,7 +356,9 @@ func (s *BpfSkeletonMeta) FindMapByIdent(ident string) *MapMeta {
 }
 
 type ProgProperties struct {
-	// CGrouPath - (cgroup family programs) All CGroup programs are attached to a CGroup (v2). This field provides the
-	// path to the CGroup to which the probe should be attached. The attach type is determined by the section.
+	// CGroupPath 用于 cgroup 程序的 cgroup 路径
 	CGroupPath string
+
+	// PinPath 用于指定 eBPF 程序的 pin 路径，下次加载时从该路径加载
+	PinPath string
 }

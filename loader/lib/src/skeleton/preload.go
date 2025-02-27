@@ -9,8 +9,17 @@ import (
 
 // LoadAndAttach 加载并附加 eBPF 程序
 func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, error) {
+	collectionOptions := ebpf.CollectionOptions{}
+	if p.ConfigData.ProgProperties.PinPath != "" {
+		mapOptions := ebpf.MapOptions{
+			PinPath: p.ConfigData.ProgProperties.PinPath,
+		}
+
+		collectionOptions.Maps = mapOptions
+	}
+
 	// 直接加载 BPF 对象集合，cilium/ebpf 会自动处理 .rodata 和 .bss
-	coll, err := ebpf.NewCollection(p.Spec)
+	coll, err := ebpf.NewCollectionWithOptions(p.Spec, collectionOptions)
 	if err != nil {
 		return nil, fmt.Errorf("load collection error: %w", err)
 	}

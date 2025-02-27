@@ -153,6 +153,30 @@ func TestBPFLoader_Init(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			name: "pin_path",
+			fields: fields{
+				Config: &Config{
+					ObjectPath:    "../../../../example/kprobe_pin/binary/kprobepin_x86_bpfel.o",
+					Logger:        logger,
+					StructName:    "event",
+					PollTimeout:   100 * time.Millisecond,
+					IsEnableStats: true,
+					StatsInterval: 1 * time.Second,
+					ProgProperties: &meta.ProgProperties{
+						PinPath:    "/sys/fs/bpf/kprobepin",
+						CGroupPath: cgroupPath,
+					},
+					UserExporterHandler: &export.MyCustomHandler{
+						Logger: logger,
+					},
+					UserMetricsHandler: &metrics.DefaultHandler{
+						Logger: logger,
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

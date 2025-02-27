@@ -164,8 +164,9 @@ func (h *JsonMapExporter) HandleEvent(keyBuffer, valueBuffer []byte) error {
 
 	// 构造最终的 JSON
 	result := map[string]interface{}{
-		"key":   keyOut,
-		"value": valueOut,
+		"timestamp": time.Now().Format("2006-01-02 15:04:05"),
+		"key":       keyOut,
+		"value":     valueOut,
 	}
 
 	jsonData, err := json.Marshal(result)
