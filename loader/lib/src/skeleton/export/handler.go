@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/helper"
 )
 
@@ -51,8 +52,8 @@ func (h *JsonExportEventHandler) HandleEvent(data []byte) error {
 	}
 
 	// 输出数据
-	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &ReceivedEventData{
-		Type:     TypeJsonText,
+	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
+		Type:     meta.TypeJsonText,
 		JsonText: string(jsonData),
 	})
 }
@@ -94,8 +95,8 @@ func (h *PlainTextExportEventHandler) HandleEvent(data []byte) error {
 	}
 
 	// 输出数据
-	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &ReceivedEventData{
-		Type: TypePlainText,
+	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
+		Type: meta.TypePlainText,
 		Text: output.String(),
 	})
 }
@@ -123,8 +124,8 @@ func (h *RawExportEventHandler) HandleEvent(data []byte) error {
 	}
 
 	// 直接传递原始数据
-	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &ReceivedEventData{
-		Type:   TypeBuffer,
+	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
+		Type:   meta.TypeBuffer,
 		Buffer: data,
 	})
 }
@@ -175,8 +176,8 @@ func (h *JsonMapExporter) HandleEvent(keyBuffer, valueBuffer []byte) error {
 	}
 
 	// 输出数据
-	h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &ReceivedEventData{
-		Type:     TypeJsonText,
+	h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
+		Type:     meta.TypeJsonText,
 		JsonText: string(jsonData),
 	})
 
@@ -219,8 +220,8 @@ func (h *PlainTextMapExporter) HandleEvent(keyBuffer, valueBuffer []byte) error 
 	}
 
 	// 输出数据
-	h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &ReceivedEventData{
-		Type: TypePlainText,
+	h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
+		Type: meta.TypePlainText,
 		Text: output.String(),
 	})
 
@@ -238,8 +239,8 @@ func NewRawMapExporter(exporter *EventExporter) *RawMapExporter {
 
 func (h *RawMapExporter) HandleEvent(keyBuffer, valueBuffer []byte) error {
 	// 直接传递原始数据
-	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &ReceivedEventData{
-		Type:   TypeBuffer,
+	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
+		Type:   meta.TypeBuffer,
 		Buffer: append(keyBuffer, valueBuffer...),
 	})
 }
@@ -304,7 +305,7 @@ func (h *Log2HistExporter) HandleEvent(keyBuffer, valueBuffer []byte) error {
 	}
 
 	// 输出基本信息
-	h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &ReceivedEventData{
+	h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
 		Type: TypePlainText,
 		Text: output.String(),
 	})
@@ -312,7 +313,7 @@ func (h *Log2HistExporter) HandleEvent(keyBuffer, valueBuffer []byte) error {
 	// 如果有 slots，打印直方图
 	if len(slots) > 0 {
 
-		h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &ReceivedEventData{
+		h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
 			Type: TypePlainText,
 			// TODO: 从命令传入直方图的字段名称
 			Text: helper.PrintLog2Hist(slots, ""),

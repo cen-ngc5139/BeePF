@@ -21,13 +21,13 @@ func (b *EventExporterBuilder) SetExportFormat(format ExportFormatType) *EventEx
 }
 
 // SetEventHandler 设置事件处理器
-func (b *EventExporterBuilder) SetEventHandler(handler EventHandler) *EventExporterBuilder {
+func (b *EventExporterBuilder) SetEventHandler(handler meta.EventHandler) *EventExporterBuilder {
 	b.ExportEventHandler = handler
 	return b
 }
 
 // SetUserContext 设置用户上下文
-func (b *EventExporterBuilder) SetUserContext(ctx *UserContext) *EventExporterBuilder {
+func (b *EventExporterBuilder) SetUserContext(ctx *meta.UserContext) *EventExporterBuilder {
 	b.UserCtx = ctx
 	return b
 }

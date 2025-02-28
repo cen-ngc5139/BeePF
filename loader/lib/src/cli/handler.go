@@ -34,14 +34,14 @@ type BaseMapHandler struct {
 	BTFContainer        *container.BTFContainer
 	Poller              skeleton.Poller
 	Stats               *metrics.Collector
-	UserExporterHandler export.EventHandler
+	UserExporterHandler meta.EventHandler
 }
 
 // setupExporter 设置事件导出器
 func (h *BaseMapHandler) setupExporter(structType *btf.Struct) (*export.EventExporter, error) {
 	ee := export.NewEventExporterBuilder().
 		SetExportFormat(export.FormatJson).
-		SetUserContext(export.NewUserContext(0)).
+		SetUserContext(meta.NewUserContext(0)).
 		SetEventHandler(h.UserExporterHandler)
 
 	exporter, err := ee.BuildForSingleValueWithTypeDescriptor(
@@ -61,7 +61,7 @@ func (h *BaseMapHandler) setupExporter(structType *btf.Struct) (*export.EventExp
 func (h *BaseMapHandler) setupKeyValueExporter(m *ebpf.MapSpec) (*export.EventExporter, error) {
 	ee := export.NewEventExporterBuilder().
 		SetExportFormat(export.FormatJson).
-		SetUserContext(export.NewUserContext(0)).
+		SetUserContext(meta.NewUserContext(0)).
 		SetEventHandler(h.UserExporterHandler)
 
 	exporter, err := ee.BuildForKeyValueWithTypeDesc(

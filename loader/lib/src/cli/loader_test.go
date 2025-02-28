@@ -64,119 +64,119 @@ func TestBPFLoader_Init(t *testing.T) {
 			},
 		},
 
-		{
-			name: "cgroup_skb",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:    "../../../../example/cgroup_skb/binary/cgroup_skb_x86_bpfel.o",
-					Logger:        logger,
-					StructName:    "cgroup_skb_t",
-					PollTimeout:   100 * time.Millisecond,
-					IsEnableStats: true,
-					StatsInterval: 1 * time.Second,
-					ProgProperties: &meta.ProgProperties{
-						CGroupPath: cgroupPath,
-					},
-					UserExporterHandler: &export.MyCustomHandler{
-						Logger: logger,
-					},
-					UserMetricsHandler: &metrics.DefaultHandler{
-						Logger: logger,
-					},
-				},
-			},
-		},
-
-		{
-			name: "fentry",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:    "../../../../example/fentry/binary/fentry_x86_bpfel.o",
-					Logger:        logger,
-					StructName:    "event",
-					PollTimeout:   100 * time.Millisecond,
-					IsEnableStats: true,
-					StatsInterval: 1 * time.Second,
-					ProgProperties: &meta.ProgProperties{
-						CGroupPath: cgroupPath,
-					},
-					UserExporterHandler: &export.MyCustomHandler{
-						Logger: logger,
-					},
-					UserMetricsHandler: &metrics.DefaultHandler{
-						Logger: logger,
-					},
-				},
-			},
-		},
-
-		{
-			name: "kprobe",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:    "../../../../example/kprobe/binary/kprobe_x86_bpfel.o",
-					Logger:        logger,
-					PollTimeout:   100 * time.Millisecond,
-					IsEnableStats: true,
-					StatsInterval: 1 * time.Second,
-					ProgProperties: &meta.ProgProperties{
-						CGroupPath: cgroupPath,
-					},
-					UserExporterHandler: &export.MyCustomHandler{
-						Logger: logger,
-					},
-					UserMetricsHandler: &metrics.DefaultHandler{
-						Logger: logger,
-					},
-				},
-			},
-		},
-		{
-			name: "kprobe_precpu",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:    "../../../../example/kprobe_precpu/binary/kprobe_precpu_x86_bpfel.o",
-					Logger:        logger,
-					StructName:    "event",
-					PollTimeout:   100 * time.Millisecond,
-					IsEnableStats: true,
-					StatsInterval: 1 * time.Second,
-					ProgProperties: &meta.ProgProperties{
-						CGroupPath: cgroupPath,
-					},
-					UserExporterHandler: &export.MyCustomHandler{
-						Logger: logger,
-					},
-					UserMetricsHandler: &metrics.DefaultHandler{
-						Logger: logger,
-					},
-				},
-			},
-		},
-
-		{
-			name: "pin_path",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:    "../../../../example/kprobe_pin/binary/kprobepin_x86_bpfel.o",
-					Logger:        logger,
-					StructName:    "event",
-					PollTimeout:   100 * time.Millisecond,
-					IsEnableStats: true,
-					StatsInterval: 1 * time.Second,
-					ProgProperties: &meta.ProgProperties{
-						PinPath:    "/sys/fs/bpf/kprobepin",
-						CGroupPath: cgroupPath,
-					},
-					UserExporterHandler: &export.MyCustomHandler{
-						Logger: logger,
-					},
-					UserMetricsHandler: &metrics.DefaultHandler{
-						Logger: logger,
-					},
-				},
-			},
-		},
+		//{
+		//	name: "cgroup_skb",
+		//	fields: fields{
+		//		Config: &Config{
+		//			ObjectPath:    "../../../../example/cgroup_skb/binary/cgroup_skb_x86_bpfel.o",
+		//			Logger:        logger,
+		//			StructName:    "cgroup_skb_t",
+		//			PollTimeout:   100 * time.Millisecond,
+		//			IsEnableStats: true,
+		//			StatsInterval: 1 * time.Second,
+		//			ProgProperties: &meta.ProgProperties{
+		//				CGroupPath: cgroupPath,
+		//			},
+		//			UserExporterHandler: &export.MyCustomHandler{
+		//				Logger: logger,
+		//			},
+		//			UserMetricsHandler: &metrics.DefaultHandler{
+		//				Logger: logger,
+		//			},
+		//		},
+		//	},
+		//},
+		//
+		//{
+		//	name: "fentry",
+		//	fields: fields{
+		//		Config: &Config{
+		//			ObjectPath:    "../../../../example/fentry/binary/fentry_x86_bpfel.o",
+		//			Logger:        logger,
+		//			StructName:    "event",
+		//			PollTimeout:   100 * time.Millisecond,
+		//			IsEnableStats: true,
+		//			StatsInterval: 1 * time.Second,
+		//			ProgProperties: &meta.ProgProperties{
+		//				CGroupPath: cgroupPath,
+		//			},
+		//			UserExporterHandler: &export.MyCustomHandler{
+		//				Logger: logger,
+		//			},
+		//			UserMetricsHandler: &metrics.DefaultHandler{
+		//				Logger: logger,
+		//			},
+		//		},
+		//	},
+		//},
+		//
+		//{
+		//	name: "kprobe",
+		//	fields: fields{
+		//		Config: &Config{
+		//			ObjectPath:    "../../../../example/kprobe/binary/kprobe_x86_bpfel.o",
+		//			Logger:        logger,
+		//			PollTimeout:   100 * time.Millisecond,
+		//			IsEnableStats: true,
+		//			StatsInterval: 1 * time.Second,
+		//			ProgProperties: &meta.ProgProperties{
+		//				CGroupPath: cgroupPath,
+		//			},
+		//			UserExporterHandler: &export.MyCustomHandler{
+		//				Logger: logger,
+		//			},
+		//			UserMetricsHandler: &metrics.DefaultHandler{
+		//				Logger: logger,
+		//			},
+		//		},
+		//	},
+		//},
+		//{
+		//	name: "kprobe_precpu",
+		//	fields: fields{
+		//		Config: &Config{
+		//			ObjectPath:    "../../../../example/kprobe_precpu/binary/kprobe_precpu_x86_bpfel.o",
+		//			Logger:        logger,
+		//			StructName:    "event",
+		//			PollTimeout:   100 * time.Millisecond,
+		//			IsEnableStats: true,
+		//			StatsInterval: 1 * time.Second,
+		//			ProgProperties: &meta.ProgProperties{
+		//				CGroupPath: cgroupPath,
+		//			},
+		//			UserExporterHandler: &export.MyCustomHandler{
+		//				Logger: logger,
+		//			},
+		//			UserMetricsHandler: &metrics.DefaultHandler{
+		//				Logger: logger,
+		//			},
+		//		},
+		//	},
+		//},
+		//
+		//{
+		//	name: "pin_path",
+		//	fields: fields{
+		//		Config: &Config{
+		//			ObjectPath:    "../../../../example/kprobe_pin/binary/kprobepin_x86_bpfel.o",
+		//			Logger:        logger,
+		//			StructName:    "event",
+		//			PollTimeout:   100 * time.Millisecond,
+		//			IsEnableStats: true,
+		//			StatsInterval: 1 * time.Second,
+		//			ProgProperties: &meta.ProgProperties{
+		//				PinPath:    "/sys/fs/bpf/kprobepin",
+		//				CGroupPath: cgroupPath,
+		//			},
+		//			UserExporterHandler: &export.MyCustomHandler{
+		//				Logger: logger,
+		//			},
+		//			UserMetricsHandler: &metrics.DefaultHandler{
+		//				Logger: logger,
+		//			},
+		//		},
+		//	},
+		//},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

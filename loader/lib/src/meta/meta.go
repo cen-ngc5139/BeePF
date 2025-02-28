@@ -2,6 +2,7 @@ package meta
 
 import (
 	"encoding/json"
+	"sync"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
@@ -376,4 +377,56 @@ type TCCLSProperties struct {
 
 	// AttachType 附加点类型
 	AttachType ebpf.AttachType
+}
+
+// DataType 定义数据类型枚举
+type DataType int
+
+const (
+	TypeBuffer DataType = iota
+	TypeKeyValueBuffer
+	TypePlainText
+	TypeJsonText
+)
+
+// ReceivedEventData 表示从 eBPF 程序接收到的数据
+type ReceivedEventData struct {
+	Type     DataType
+	Buffer   []byte
+	KeyBuf   []byte
+	ValueBuf []byte
+	Text     string
+	JsonText string
+}
+
+// EventHandler 定义事件处理接口
+type EventHandler interface {
+	HandleEvent(ctx *UserContext, data *ReceivedEventData) error
+}
+
+// UserContext 用于存储用户上下文
+type UserContext struct {
+	Value interface{}
+	mu    sync.RWMutex
+}
+
+// NewUserContext 创建新的用户上下文
+func NewUserContext(value interface{}) *UserContext {
+	return &UserContext{
+		Value: value,
+	}
+}
+
+// GetValue 获取上下文值
+func (c *UserContext) GetValue() interface{} {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.Value
+}
+
+// SetValue 设置上下文值
+func (c *UserContext) SetValue(value interface{}) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Value = value
 }

@@ -4,11 +4,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
-	"go.uber.org/zap/zaptest"
-
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/container"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cilium/ebpf/btf"
+	"go.uber.org/zap/zaptest"
 )
 
 func TestEventExporterBuilder_BuildForSingleValueWithTypeDescriptor(t *testing.T) {
@@ -16,8 +15,8 @@ func TestEventExporterBuilder_BuildForSingleValueWithTypeDescriptor(t *testing.T
 		progFile           string
 		binFile            string
 		ExportFormat       ExportFormatType
-		ExportEventHandler EventHandler
-		UserCtx            *UserContext
+		ExportEventHandler meta.EventHandler
+		UserCtx            *meta.UserContext
 	}
 	type args struct {
 		typeDesc     TypeDescriptor
@@ -37,7 +36,7 @@ func TestEventExporterBuilder_BuildForSingleValueWithTypeDescriptor(t *testing.T
 				binFile:            "../../../../testdata/dumper_test.bin",
 				ExportFormat:       FormatJson,
 				ExportEventHandler: &MyCustomHandler{Logger: zaptest.NewLogger(t)},
-				UserCtx:            NewUserContext(0),
+				UserCtx:            meta.NewUserContext(0),
 			},
 		},
 	}

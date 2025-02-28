@@ -1,9 +1,8 @@
 package export
 
 import (
-	"sync"
-
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/container"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cilium/ebpf/btf"
 )
 
@@ -17,23 +16,18 @@ const (
 	FormatLog2Hist
 )
 
-// ReceivedEventData 表示从 eBPF 程序接收到的数据
-type ReceivedEventData struct {
-	Type     DataType
-	Buffer   []byte
-	KeyBuf   []byte
-	ValueBuf []byte
-	Text     string
-	JsonText string
-}
+// 为了兼容性，保留类型别名
+type DataType = meta.DataType
+type ReceivedEventData = meta.ReceivedEventData
+type EventHandler = meta.EventHandler
+type UserContext = meta.UserContext
 
-type DataType int
-
+// 常量别名
 const (
-	TypeBuffer DataType = iota
-	TypeKeyValueBuffer
-	TypePlainText
-	TypeJsonText
+	TypeBuffer         = meta.TypeBuffer
+	TypeKeyValueBuffer = meta.TypeKeyValueBuffer
+	TypePlainText      = meta.TypePlainText
+	TypeJsonText       = meta.TypeJsonText
 )
 
 // CheckedExportedMember 表示已检查的导出结构成员
@@ -43,17 +37,6 @@ type CheckedExportedMember struct {
 	BitOffset          btf.Bits
 	Size               btf.Bits
 	OutputHeaderOffset btf.Bits
-}
-
-// EventHandler 定义事件处理接口
-type EventHandler interface {
-	HandleEvent(ctx *UserContext, data *ReceivedEventData) error
-}
-
-// UserContext 用于存储用户上下文
-type UserContext struct {
-	Value interface{}
-	mu    sync.RWMutex
 }
 
 // EventExporter 主要的导出器结构
@@ -71,23 +54,5 @@ type EventExporterBuilder struct {
 	UserCtx            *UserContext
 }
 
-// NewUserContext 创建新的用户上下文
-func NewUserContext(value interface{}) *UserContext {
-	return &UserContext{
-		Value: value,
-	}
-}
-
-// GetValue 获取上下文值
-func (c *UserContext) GetValue() interface{} {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.Value
-}
-
-// SetValue 设置上下文值
-func (c *UserContext) SetValue(value interface{}) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.Value = value
-}
+// 使用 meta 包中的函数
+var NewUserContext = meta.NewUserContext

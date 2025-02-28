@@ -8,14 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
+	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/ebpf/ringbuf"
 	"go.uber.org/zap/zaptest"
-
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
-	"github.com/cilium/ebpf"
-
-	"github.com/cilium/ebpf/perf"
 )
 
 func TestRingBufferPoller_Poll(t *testing.T) {
@@ -73,7 +71,7 @@ func TestRingBufferPoller_Poll(t *testing.T) {
 
 					ee := export.NewEventExporterBuilder().
 						SetExportFormat(export.FormatJson).
-						SetUserContext(export.NewUserContext(0)).
+						SetUserContext(meta.NewUserContext(0)).
 						SetEventHandler(&export.MyCustomHandler{Logger: zaptest.NewLogger(t)})
 
 					structType, err := FindStructType(v.Type())

@@ -68,31 +68,3 @@ const (
 type AttachLink interface {
 	Close() error
 }
-
-// 具体的 AttachLink 实现
-type (
-	// BPFLink 表示通用的 BPF 程序链接
-	BPFLink struct {
-		Link *link.Link
-	}
-
-	// TCAttach 表示 TC 类型程序的链接
-	TCAttach struct {
-		Iface  string
-		Handle uint32
-		// TC 特定字段
-	}
-
-	// XDPAttach 表示 XDP 类型程序的链接
-	XDPAttach struct {
-		Iface string
-		Flags uint32
-		// XDP 特定字段
-	}
-
-	// PerfEventAttach 表示 PerfEvent 类型程序的链接
-	PerfEventAttach struct {
-		Link *link.Link
-		Fd   int
-	}
-)

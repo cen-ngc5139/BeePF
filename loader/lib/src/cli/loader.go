@@ -12,7 +12,6 @@ import (
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
@@ -54,7 +53,7 @@ type Config struct {
 	StructName          string
 	IsEnableStats       bool
 	StatsInterval       time.Duration
-	UserExporterHandler export.EventHandler
+	UserExporterHandler meta.EventHandler
 	UserMetricsHandler  metrics.Handler
 	ProgProperties      *meta.ProgProperties
 }
