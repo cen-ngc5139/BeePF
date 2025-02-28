@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
 )
 
@@ -357,28 +356,6 @@ func (s *BpfSkeletonMeta) FindMapByIdent(ident string) *MapMeta {
 	return nil
 }
 
-type ProgProperties struct {
-	// CGroupPath 用于 cgroup 程序的 cgroup 路径
-	CGroupPath string
-
-	// PinPath 用于指定 eBPF 程序的 pin 路径，下次加载时从该路径加载
-	PinPath string
-
-	// Tc 流量控制配置
-	Tc *TCCLSProperties
-}
-
-type TCCLSProperties struct {
-	// Ifindex 接口索引
-	Ifindex int32
-
-	// Ifname 接口名称
-	Ifname string
-
-	// AttachType 附加点类型
-	AttachType ebpf.AttachType
-}
-
 // DataType 定义数据类型枚举
 type DataType int
 
@@ -397,11 +374,6 @@ type ReceivedEventData struct {
 	ValueBuf []byte
 	Text     string
 	JsonText string
-}
-
-// EventHandler 定义事件处理接口
-type EventHandler interface {
-	HandleEvent(ctx *UserContext, data *ReceivedEventData) error
 }
 
 // UserContext 用于存储用户上下文
