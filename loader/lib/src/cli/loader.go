@@ -45,17 +45,12 @@ type BPFLoader struct {
 
 // Config 配置结构
 type Config struct {
-	ObjectPath          string
-	BTFPath             string
-	Logger              *zap.Logger
-	PollTimeout         time.Duration
-	ProgramName         string
-	StructName          string
-	IsEnableStats       bool
-	StatsInterval       time.Duration
-	UserExporterHandler meta.EventHandler
-	UserMetricsHandler  metrics.Handler
-	ProgProperties      *meta.ProgProperties
+	ObjectPath  string
+	BTFPath     string
+	Logger      *zap.Logger
+	PollTimeout time.Duration
+	StructName  string
+	Properties  meta.Properties
 }
 
 func NewBPFLoader(cfg *Config) *BPFLoader {
@@ -70,8 +65,9 @@ func NewBPFLoader(cfg *Config) *BPFLoader {
 		MapHandlers: make([]MapHandler, 0),
 	}
 
-	if cfg.IsEnableStats {
-		collector, err := metrics.NewStatsCollector(cfg.StatsInterval, cfg.UserMetricsHandler, cfg.Logger)
+	if cfg.Properties.Stats != nil {
+		stats := cfg.Properties.Stats
+		collector, err := metrics.NewStatsCollector(stats.Interval, stats.Handler, cfg.Logger)
 		if err != nil {
 			cfg.Logger.Error("failed to create stats collector", zap.Error(err))
 		}
@@ -81,25 +77,22 @@ func NewBPFLoader(cfg *Config) *BPFLoader {
 	// 注册默认的 map 处理器
 	loader.RegisterMapHandler(&PerfEventMapHandler{
 		BaseMapHandler: BaseMapHandler{
-			Logger:              cfg.Logger,
-			Config:              cfg,
-			UserExporterHandler: cfg.UserExporterHandler,
+			Logger: cfg.Logger,
+			Config: cfg,
 		},
 	})
 
 	loader.RegisterMapHandler(&RingBufMapHandler{
 		BaseMapHandler: BaseMapHandler{
-			Logger:              cfg.Logger,
-			Config:              cfg,
-			UserExporterHandler: cfg.UserExporterHandler,
+			Logger: cfg.Logger,
+			Config: cfg,
 		},
 	})
 
 	loader.RegisterMapHandler(&SampleMapHandler{
 		BaseMapHandler: BaseMapHandler{
-			Logger:              cfg.Logger,
-			Config:              cfg,
-			UserExporterHandler: cfg.UserExporterHandler,
+			Logger: cfg.Logger,
+			Config: cfg,
 		},
 	})
 
@@ -111,18 +104,13 @@ func (l *BPFLoader) Init() error {
 	l.Logger.Info("initializing BPF loader...")
 
 	// 生成组合对象
-	pkg, err := meta.GenerateComposedObject(l.Config.ObjectPath)
+	pkg, err := meta.GenerateComposedObject(l.Config.ObjectPath, l.Config.Properties)
 	if err != nil {
 		return fmt.Errorf("generate composed object failed: %w", err)
 	}
 
-	runnerConfig := &meta.RunnerConfig{
-		ProgProperties: l.Config.ProgProperties,
-	}
-
 	// 构建预加载骨架
-	preLoadSkeleton, err := skeleton.FromJsonPackage(pkg, filepath.Dir(l.Config.ObjectPath)).
-		SetRunnerConfig(runnerConfig).Build()
+	preLoadSkeleton, err := skeleton.FromJsonPackage(pkg, filepath.Dir(l.Config.ObjectPath)).Build()
 	if err != nil {
 		return fmt.Errorf("build preload skeleton failed: %w", err)
 	}
@@ -193,6 +181,14 @@ func (l *BPFLoader) GetMapSpecByType(name string) *ebpf.MapSpec {
 	return mapSpec
 }
 
+func (l *BPFLoader) GetMapCollectionByType(name string) *ebpf.Map {
+	mapSpec, ok := l.Collection.Maps[name]
+	if !ok {
+		return nil
+	}
+	return mapSpec
+}
+
 // isSkipMap 判断是否需要跳过某些特殊的 map
 func isSkipMap(name string) bool {
 	// 需要跳过的特殊 map 名称列表
@@ -219,8 +215,13 @@ func isSkipMap(name string) bool {
 func (l *BPFLoader) Start() error {
 	l.Logger.Info("starting BPF programs...")
 
-	// 处理所有 maps
-	for _, m := range l.Collection.Maps {
+	for mapName, mapMeta := range l.PreLoadSkeleton.Meta.BpfSkel.Maps {
+		m := l.GetMapCollectionByType(mapName)
+		if m == nil {
+			l.Logger.Error("map spec not found", zap.String("map name", mapName))
+			continue
+		}
+
 		info, err := m.Info()
 		if err != nil {
 			l.Logger.Error("failed to get map info", zap.String("map name", m.String()), zap.Error(err))
@@ -245,6 +246,7 @@ func (l *BPFLoader) Start() error {
 			continue
 		}
 
+		handler.SetEventHandler(mapMeta.ExportHandler)
 		poller, err := handler.Setup(spec, m)
 		if err != nil {
 			return fmt.Errorf("setup map handler failed: %w", err)

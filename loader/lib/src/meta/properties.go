@@ -1,13 +1,21 @@
 package meta
 
-import "github.com/cilium/ebpf"
+import (
+	"github.com/cilium/ebpf"
+	"time"
+)
 
 type Properties struct {
 	// Maps 映射列表
-	Maps map[string]Map
+	Maps map[string]*Map
 
 	// Programs 程序列表
-	Programs map[string]Program
+	Programs map[string]*Program
+
+	Stats *Stats
+
+	EventHandler   EventHandler
+	MetricsHandler MetricsHandler
 }
 
 type Map struct {
@@ -18,10 +26,19 @@ type Map struct {
 	ExportHandler EventHandler
 }
 
+type Stats struct {
+	Interval time.Duration
+	Handler  MetricsHandler
+}
+
 type Program struct {
 	// Name 程序名称
 	Name string
 
+	Properties *ProgramProperties
+}
+
+type ProgramProperties struct {
 	// CGroupPath 用于 cgroup 程序的 cgroup 路径
 	CGroupPath string
 

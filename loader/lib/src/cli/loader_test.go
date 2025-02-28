@@ -4,15 +4,13 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
+	"go.uber.org/zap"
 	"os"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
-	"go.uber.org/zap"
 )
 
 func TestBPFLoader_Init(t *testing.T) {
@@ -22,6 +20,8 @@ func TestBPFLoader_Init(t *testing.T) {
 		fmt.Println("检测 cgroup 路径失败", zap.Error(err))
 		return
 	}
+
+	fmt.Println(cgroupPath)
 
 	// 初始化日志
 	logger, err := zap.NewDevelopment()
@@ -39,49 +39,48 @@ func TestBPFLoader_Init(t *testing.T) {
 		fields  fields
 		wantErr bool
 	}{
-		{
-			name: "sched_wakeup",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:    "../../../../example/sched_wakeup/binary/shepherd_x86_bpfel.o",
-					Logger:        logger,
-					StructName:    "sched_latency_t",
-					PollTimeout:   100 * time.Millisecond,
-					IsEnableStats: true,
-					StatsInterval: 1 * time.Second,
-					// 设置用户自定义的 map 数据导出处理器
-					UserExporterHandler: &export.MyCustomHandler{
-						Logger: logger,
-					},
-					ProgProperties: &meta.ProgProperties{
-						CGroupPath: cgroupPath,
-					},
-					// 设置用户自定义的 stats 数据导出处理器
-					UserMetricsHandler: &metrics.DefaultHandler{
-						Logger: logger,
-					},
-				},
-			},
-		},
+		//{
+		//	name: "sched_wakeup",
+		//	fields: fields{
+		//		Config: &Config{
+		//			ObjectPath:  "../../../../example/sched_wakeup/binary/shepherd_x86_bpfel.o",
+		//			Logger:      logger,
+		//			StructName:  "sched_latency_t",
+		//			PollTimeout: 100 * time.Millisecond,
+		//			Properties: meta.Properties{
+		//				Maps: map[string]*meta.Map{
+		//					"sched_events": &meta.Map{
+		//						Name:          "sched_events",
+		//						ExportHandler: &export.MyCustomHandler{Logger: logger},
+		//					},
+		//				},
+		//				Stats: &meta.Stats{
+		//					Interval: 1 * time.Second,
+		//					Handler:  metrics.NewDefaultHandler(logger),
+		//				},
+		//			},
+		//		},
+		//	},
+		//},
 
 		//{
 		//	name: "cgroup_skb",
 		//	fields: fields{
 		//		Config: &Config{
-		//			ObjectPath:    "../../../../example/cgroup_skb/binary/cgroup_skb_x86_bpfel.o",
-		//			Logger:        logger,
-		//			StructName:    "cgroup_skb_t",
-		//			PollTimeout:   100 * time.Millisecond,
-		//			IsEnableStats: true,
-		//			StatsInterval: 1 * time.Second,
-		//			ProgProperties: &meta.ProgProperties{
-		//				CGroupPath: cgroupPath,
-		//			},
-		//			UserExporterHandler: &export.MyCustomHandler{
-		//				Logger: logger,
-		//			},
-		//			UserMetricsHandler: &metrics.DefaultHandler{
-		//				Logger: logger,
+		//			ObjectPath:  "../../../../example/cgroup_skb/binary/cgroup_skb_x86_bpfel.o",
+		//			Logger:      logger,
+		//			StructName:  "cgroup_skb_t",
+		//			PollTimeout: 100 * time.Millisecond,
+		//			Properties: meta.Properties{
+		//				Programs: map[string]*meta.Program{
+		//					"count_egress_packets": &meta.Program{
+		//						Properties: &meta.ProgramProperties{CGroupPath: cgroupPath},
+		//					},
+		//				},
+		//				Stats: &meta.Stats{
+		//					Interval: 1 * time.Second,
+		//					Handler:  metrics.NewDefaultHandler(logger),
+		//				},
 		//			},
 		//		},
 		//	},
@@ -91,20 +90,15 @@ func TestBPFLoader_Init(t *testing.T) {
 		//	name: "fentry",
 		//	fields: fields{
 		//		Config: &Config{
-		//			ObjectPath:    "../../../../example/fentry/binary/fentry_x86_bpfel.o",
-		//			Logger:        logger,
-		//			StructName:    "event",
-		//			PollTimeout:   100 * time.Millisecond,
-		//			IsEnableStats: true,
-		//			StatsInterval: 1 * time.Second,
-		//			ProgProperties: &meta.ProgProperties{
-		//				CGroupPath: cgroupPath,
-		//			},
-		//			UserExporterHandler: &export.MyCustomHandler{
-		//				Logger: logger,
-		//			},
-		//			UserMetricsHandler: &metrics.DefaultHandler{
-		//				Logger: logger,
+		//			ObjectPath:  "../../../../example/fentry/binary/fentry_x86_bpfel.o",
+		//			Logger:      logger,
+		//			StructName:  "event",
+		//			PollTimeout: 100 * time.Millisecond,
+		//			Properties: meta.Properties{
+		//				Stats: &meta.Stats{
+		//					Interval: 1 * time.Second,
+		//					Handler:  metrics.NewDefaultHandler(logger),
+		//				},
 		//			},
 		//		},
 		//	},
@@ -114,69 +108,59 @@ func TestBPFLoader_Init(t *testing.T) {
 		//	name: "kprobe",
 		//	fields: fields{
 		//		Config: &Config{
-		//			ObjectPath:    "../../../../example/kprobe/binary/kprobe_x86_bpfel.o",
-		//			Logger:        logger,
-		//			PollTimeout:   100 * time.Millisecond,
-		//			IsEnableStats: true,
-		//			StatsInterval: 1 * time.Second,
-		//			ProgProperties: &meta.ProgProperties{
-		//				CGroupPath: cgroupPath,
-		//			},
-		//			UserExporterHandler: &export.MyCustomHandler{
-		//				Logger: logger,
-		//			},
-		//			UserMetricsHandler: &metrics.DefaultHandler{
-		//				Logger: logger,
+		//			ObjectPath:  "../../../../example/kprobe/binary/kprobe_x86_bpfel.o",
+		//			Logger:      logger,
+		//			PollTimeout: 100 * time.Millisecond,
+		//			Properties: meta.Properties{
+		//				Stats: &meta.Stats{
+		//					Interval: 1 * time.Second,
+		//					Handler:  metrics.NewDefaultHandler(logger),
+		//				},
 		//			},
 		//		},
 		//	},
 		//},
-		//{
-		//	name: "kprobe_precpu",
-		//	fields: fields{
-		//		Config: &Config{
-		//			ObjectPath:    "../../../../example/kprobe_precpu/binary/kprobe_precpu_x86_bpfel.o",
-		//			Logger:        logger,
-		//			StructName:    "event",
-		//			PollTimeout:   100 * time.Millisecond,
-		//			IsEnableStats: true,
-		//			StatsInterval: 1 * time.Second,
-		//			ProgProperties: &meta.ProgProperties{
-		//				CGroupPath: cgroupPath,
-		//			},
-		//			UserExporterHandler: &export.MyCustomHandler{
-		//				Logger: logger,
-		//			},
-		//			UserMetricsHandler: &metrics.DefaultHandler{
-		//				Logger: logger,
-		//			},
-		//		},
-		//	},
-		//},
-		//
-		//{
-		//	name: "pin_path",
-		//	fields: fields{
-		//		Config: &Config{
-		//			ObjectPath:    "../../../../example/kprobe_pin/binary/kprobepin_x86_bpfel.o",
-		//			Logger:        logger,
-		//			StructName:    "event",
-		//			PollTimeout:   100 * time.Millisecond,
-		//			IsEnableStats: true,
-		//			StatsInterval: 1 * time.Second,
-		//			ProgProperties: &meta.ProgProperties{
-		//				PinPath:    "/sys/fs/bpf/kprobepin",
-		//				CGroupPath: cgroupPath,
-		//			},
-		//			UserExporterHandler: &export.MyCustomHandler{
-		//				Logger: logger,
-		//			},
-		//			UserMetricsHandler: &metrics.DefaultHandler{
-		//				Logger: logger,
-		//			},
-		//		},
-		//	},
-		//},
+		{
+			name: "kprobe_precpu",
+			fields: fields{
+				Config: &Config{
+					ObjectPath:  "../../../../example/kprobe_precpu/binary/kprobe_precpu_x86_bpfel.o",
+					Logger:      logger,
+					StructName:  "event",
+					PollTimeout: 100 * time.Millisecond,
+					Properties: meta.Properties{
+						Stats: &meta.Stats{
+							Interval: 1 * time.Second,
+							Handler:  metrics.NewDefaultHandler(logger),
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "pin_path",
+			fields: fields{
+				Config: &Config{
+					ObjectPath:  "../../../../example/kprobe_pin/binary/kprobepin_x86_bpfel.o",
+					Logger:      logger,
+					StructName:  "event",
+					PollTimeout: 100 * time.Millisecond,
+					Properties: meta.Properties{
+						Programs: map[string]*meta.Program{
+							"rpc_exit_task": &meta.Program{
+								Name:       "rpc_exit_task",
+								Properties: &meta.ProgramProperties{PinPath: "/sys/fs/bpf/kprobepin"},
+							},
+						},
+						Stats: &meta.Stats{
+							Interval: 1 * time.Second,
+							Handler:  metrics.NewDefaultHandler(logger),
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

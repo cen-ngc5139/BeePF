@@ -10,7 +10,7 @@ import (
 )
 
 // AttachProgram 根据程序类型选择合适的 attach 方式
-func (p *ProgMeta) AttachProgram(spec *ebpf.ProgramSpec, program *ebpf.Program, properties *ProgProperties) (link.Link, error) {
+func (p *ProgMeta) AttachProgram(spec *ebpf.ProgramSpec, program *ebpf.Program, properties *ProgramProperties) (link.Link, error) {
 	switch spec.Type {
 	case ebpf.UnspecifiedProgram:
 		return nil, fmt.Errorf("error:%v, %s", ErrSectionFormat, "invalid program type, make sure to use the right section prefix")
@@ -118,7 +118,7 @@ func (p *ProgMeta) attachSocket() (link.Link, error) {
 	return nil, nil
 }
 
-func (p *ProgMeta) attachTCCLS(program *ebpf.Program, properties *ProgProperties) (link.Link, error) {
+func (p *ProgMeta) attachTCCLS(program *ebpf.Program, properties *ProgramProperties) (link.Link, error) {
 	if properties.Tc == nil {
 		return nil, fmt.Errorf("prog %s invalid tc properties", p.Name)
 	}

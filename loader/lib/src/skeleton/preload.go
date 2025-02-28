@@ -10,12 +10,18 @@ import (
 // LoadAndAttach 加载并附加 eBPF 程序
 func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, error) {
 	collectionOptions := ebpf.CollectionOptions{}
-	if p.ConfigData.ProgProperties.PinPath != "" {
-		mapOptions := ebpf.MapOptions{
-			PinPath: p.ConfigData.ProgProperties.PinPath,
+	for _, prog := range p.Meta.BpfSkel.Progs {
+		if prog.Properties == nil {
+			continue
 		}
 
-		collectionOptions.Maps = mapOptions
+		if prog.Properties.PinPath != "" {
+			mapOptions := ebpf.MapOptions{
+				PinPath: p.ConfigData.ProgProperties.PinPath,
+			}
+
+			collectionOptions.Maps = mapOptions
+		}
 	}
 
 	// 直接加载 BPF 对象集合，cilium/ebpf 会自动处理 .rodata 和 .bss
@@ -42,7 +48,7 @@ func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, error) {
 		}
 
 		// 根据不同的 AttachType 使用对应的 attach 方式
-		link, err := progMeta.AttachProgram(progSpec, prog, p.ConfigData.ProgProperties)
+		link, err := progMeta.AttachProgram(progSpec, prog, progMeta.Properties)
 		if err != nil {
 			return nil, fmt.Errorf("attach program %s error: %w", progMeta.Name, err)
 		}

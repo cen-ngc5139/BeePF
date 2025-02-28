@@ -51,6 +51,11 @@ func (h *JsonExportEventHandler) HandleEvent(data []byte) error {
 		return fmt.Errorf("dump to json error: %w", err)
 	}
 
+	// 检查 UserExportEventHandler 是否为 nil
+	if h.Exporter.UserExportEventHandler == nil {
+		return fmt.Errorf("UserExportEventHandler is nil, please set it before calling HandleEvent")
+	}
+
 	// 输出数据
 	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
 		Type:     meta.TypeJsonText,
@@ -92,6 +97,11 @@ func (h *PlainTextExportEventHandler) HandleEvent(data []byte) error {
 	err = DumpToStringWithCheckedTypes(checkedTypes, data, &output)
 	if err != nil {
 		return fmt.Errorf("dump to string error: %w", err)
+	}
+
+	// 检查 UserExportEventHandler 是否为 nil
+	if h.Exporter.UserExportEventHandler == nil {
+		return fmt.Errorf("UserExportEventHandler is nil, please set it before calling HandleEvent")
 	}
 
 	// 输出数据
@@ -175,6 +185,11 @@ func (h *JsonMapExporter) HandleEvent(keyBuffer, valueBuffer []byte) error {
 		return fmt.Errorf("marshal json error: %w", err)
 	}
 
+	// 检查 UserExportEventHandler 是否为 nil
+	if h.Exporter.UserExportEventHandler == nil {
+		return fmt.Errorf("UserExportEventHandler is nil, please set it before calling HandleEvent")
+	}
+
 	// 输出数据
 	h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
 		Type:     meta.TypeJsonText,
@@ -219,6 +234,11 @@ func (h *PlainTextMapExporter) HandleEvent(keyBuffer, valueBuffer []byte) error 
 		return fmt.Errorf("dump value error: %w", err)
 	}
 
+	// 检查 UserExportEventHandler 是否为 nil
+	if h.Exporter.UserExportEventHandler == nil {
+		return fmt.Errorf("UserExportEventHandler is nil, please set it before calling HandleEvent")
+	}
+
 	// 输出数据
 	h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
 		Type: meta.TypePlainText,
@@ -238,6 +258,11 @@ func NewRawMapExporter(exporter *EventExporter) *RawMapExporter {
 }
 
 func (h *RawMapExporter) HandleEvent(keyBuffer, valueBuffer []byte) error {
+	// 检查 UserExportEventHandler 是否为 nil
+	if h.Exporter.UserExportEventHandler == nil {
+		return fmt.Errorf("UserExportEventHandler is nil, please set it before calling HandleEvent")
+	}
+
 	// 直接传递原始数据
 	return h.Exporter.UserExportEventHandler.HandleEvent(h.Exporter.UserCtx, &meta.ReceivedEventData{
 		Type:   meta.TypeBuffer,
@@ -302,6 +327,11 @@ func (h *Log2HistExporter) HandleEvent(keyBuffer, valueBuffer []byte) error {
 			output.WriteString(val)
 			output.WriteString("\n")
 		}
+	}
+
+	// 检查 UserExportEventHandler 是否为 nil
+	if h.Exporter.UserExportEventHandler == nil {
+		return fmt.Errorf("UserExportEventHandler is nil, please set it before calling HandleEvent")
 	}
 
 	// 输出基本信息

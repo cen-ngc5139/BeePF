@@ -23,18 +23,19 @@ type MapHandler interface {
 	SetCollection(*ebpf.Collection)
 	SetBTFContainer(*container.BTFContainer)
 	Close()
+	SetEventHandler(meta.EventHandler)
 }
 
 // BaseMapHandler 提供通用实现
 type BaseMapHandler struct {
-	Logger              *zap.Logger
-	Config              *Config
-	Collection          *ebpf.Collection
-	MapSpec             *ebpf.MapSpec
-	BTFContainer        *container.BTFContainer
-	Poller              skeleton.Poller
-	Stats               *metrics.Collector
-	UserExporterHandler meta.EventHandler
+	Logger       *zap.Logger
+	Config       *Config
+	Collection   *ebpf.Collection
+	MapSpec      *ebpf.MapSpec
+	BTFContainer *container.BTFContainer
+	Poller       skeleton.Poller
+	Stats        *metrics.Collector
+	EventHandler meta.EventHandler
 }
 
 // setupExporter 设置事件导出器
@@ -42,7 +43,7 @@ func (h *BaseMapHandler) setupExporter(structType *btf.Struct) (*export.EventExp
 	ee := export.NewEventExporterBuilder().
 		SetExportFormat(export.FormatJson).
 		SetUserContext(meta.NewUserContext(0)).
-		SetEventHandler(h.UserExporterHandler)
+		SetEventHandler(h.EventHandler)
 
 	exporter, err := ee.BuildForSingleValueWithTypeDescriptor(
 		&export.BTFTypeDescriptor{
@@ -62,7 +63,7 @@ func (h *BaseMapHandler) setupKeyValueExporter(m *ebpf.MapSpec) (*export.EventEx
 	ee := export.NewEventExporterBuilder().
 		SetExportFormat(export.FormatJson).
 		SetUserContext(meta.NewUserContext(0)).
-		SetEventHandler(h.UserExporterHandler)
+		SetEventHandler(h.EventHandler)
 
 	exporter, err := ee.BuildForKeyValueWithTypeDesc(
 		export.NewBTFTypeDescriptor(m.Key, m.Key.TypeName()),
@@ -91,7 +92,7 @@ func (h *BaseMapHandler) setupPoller(poller skeleton.Poller) (*skeleton.ProgramP
 	// 启动轮询
 
 	programPoller.StartPolling(
-		h.Config.ProgramName,
+		"",
 		poller.GetPollFunc(),
 		h.handlePollingError,
 	)
@@ -165,6 +166,10 @@ func (h *PerfEventMapHandler) Setup(spec *ebpf.MapSpec, m *ebpf.Map) (*skeleton.
 	return h.setupPoller(poller)
 }
 
+func (h *PerfEventMapHandler) SetEventHandler(handler meta.EventHandler) {
+	h.EventHandler = handler
+}
+
 func (h *PerfEventMapHandler) Close() {
 	if h.Poller != nil {
 		h.Poller.Close()
@@ -222,6 +227,10 @@ func (h *RingBufMapHandler) SetBTFContainer(btfContainer *container.BTFContainer
 	h.BTFContainer = btfContainer
 }
 
+func (h *RingBufMapHandler) SetEventHandler(handler meta.EventHandler) {
+	h.EventHandler = handler
+}
+
 type SampleMapHandler struct {
 	BaseMapHandler
 }
@@ -261,4 +270,8 @@ func (s *SampleMapHandler) SetCollection(collection *ebpf.Collection) {
 
 func (s *SampleMapHandler) SetBTFContainer(btfContainer *container.BTFContainer) {
 	s.BTFContainer = btfContainer
+}
+
+func (s *SampleMapHandler) SetEventHandler(handler meta.EventHandler) {
+	s.EventHandler = handler
 }

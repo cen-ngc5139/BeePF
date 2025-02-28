@@ -1,10 +1,9 @@
 package metrics
 
-import "go.uber.org/zap"
-
-type Handler interface {
-	Handle(stats *Stats) error
-}
+import (
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
+	"go.uber.org/zap"
+)
 
 type DefaultHandler struct {
 	Logger *zap.Logger
@@ -16,7 +15,7 @@ func NewDefaultHandler(logger *zap.Logger) *DefaultHandler {
 	}
 }
 
-func (h *DefaultHandler) Handle(stats *Stats) error {
+func (h *DefaultHandler) Handle(stats *meta.MetricsStats) error {
 	h.Logger.Info("stats", zap.Any("stats", stats))
 	return nil
 }

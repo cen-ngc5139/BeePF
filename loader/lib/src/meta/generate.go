@@ -14,13 +14,13 @@ const (
 	BPF_F_MMAPABLE = 1024
 )
 
-func GenerateComposedObject(objectFile string) (*ComposedObject, error) {
+func GenerateComposedObject(objectFile string, properties Properties) (*ComposedObject, error) {
 	objectRaw, err := os.ReadFile(objectFile)
 	if err != nil {
 		return nil, fmt.Errorf("read object file error: %w", err)
 	}
 
-	meta, err := GenerateMeta(objectRaw)
+	meta, err := GenerateMeta(objectRaw, properties)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func GenerateComposedObject(objectFile string) (*ComposedObject, error) {
 }
 
 // GenerateMeta 生成元数据
-func GenerateMeta(objectFile []byte) (*EunomiaObjectMeta, error) {
+func GenerateMeta(objectFile []byte, properties Properties) (*EunomiaObjectMeta, error) {
 	// 从字节流中加载
 	spec, err := ebpf.LoadCollectionSpecFromReader(bytes.NewReader(objectFile))
 	if err != nil {
@@ -97,8 +97,8 @@ func GenerateMeta(objectFile []byte) (*EunomiaObjectMeta, error) {
 	meta := EunomiaObjectMeta{
 		ExportTypes: exportTypes,
 		BpfSkel: BpfSkeletonMeta{
-			Maps:         convertMaps(spec.Maps),
-			Progs:        convertProgs(spec.Programs),
+			Maps:         convertMaps(spec.Maps, properties),
+			Progs:        convertProgs(spec.Programs, properties.Programs),
 			DataSections: dataSections,
 		},
 		PerfBufferPages:  64,  // 默认值
@@ -147,7 +147,7 @@ func isSpecialSection(name string) bool {
 }
 
 // convertMaps 转换 Maps
-func convertMaps(maps map[string]*ebpf.MapSpec) map[string]*MapMeta {
+func convertMaps(maps map[string]*ebpf.MapSpec, properties Properties) map[string]*MapMeta {
 	result := make(map[string]*MapMeta)
 	for name, mapSpec := range maps {
 		// .bss section 是一个特殊的 map，总是支持 mmap
@@ -159,20 +159,39 @@ func convertMaps(maps map[string]*ebpf.MapSpec) map[string]*MapMeta {
 			// .bss section 总是可以 mmap
 			Mmaped: isBssSection || (mapSpec.Flags&BPF_F_MMAPABLE != 0),
 		}
+
+		if properties.EventHandler != nil {
+			meta.ExportHandler = properties.EventHandler
+		}
+
+		if properties.Maps != nil {
+			m, ok := properties.Maps[name]
+			if ok {
+				meta.ExportHandler = m.ExportHandler
+			}
+		}
+
 		result[name] = meta
 	}
 	return result
 }
 
 // 转换 Programs
-func convertProgs(progs map[string]*ebpf.ProgramSpec) map[string]*ProgMeta {
+func convertProgs(progs map[string]*ebpf.ProgramSpec, properties map[string]*Program) map[string]*ProgMeta {
 	result := make(map[string]*ProgMeta)
 	for name, progSpec := range progs {
 		meta := &ProgMeta{
-			Name:   name,
-			Attach: progSpec.SectionName, // 使用程序类型作为附加点
-			Link:   needsLink(progSpec.Type),
+			Name:       name,
+			Attach:     progSpec.SectionName, // 使用程序类型作为附加点
+			Link:       needsLink(progSpec.Type),
+			Properties: &ProgramProperties{},
 		}
+
+		properties, ok := properties[name]
+		if ok {
+			meta.Properties = properties.Properties
+		}
+
 		result[name] = meta
 	}
 	return result

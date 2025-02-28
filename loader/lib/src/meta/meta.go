@@ -155,6 +155,9 @@ type MapMeta struct {
 
 	// Interpreter 缓冲区值解释器配置
 	Interpreter BufferValueInterpreter `json:"interpreter"`
+
+	// ExportHandler 导出处理器
+	ExportHandler EventHandler `json:"export_handler"`
 }
 
 // MapSampleMeta Map 采样元数据
@@ -262,8 +265,8 @@ type ProgMeta struct {
 	// Link 程序附加是否生成 bpf_link
 	Link bool `json:"link"`
 
-	// Others 其他程序特定配置
-	Others map[string]interface{} `json:"others,omitempty"`
+	// Properties 程序特定配置
+	Properties *ProgramProperties `json:"properties,omitempty"`
 }
 
 // BpfSkelDoc BPF 骨架文档
@@ -343,7 +346,7 @@ type RunnerConfig struct {
 	PrintKernelDebug bool `json:"print_kernel_debug"`
 
 	// ProgProperties 程序特定配置
-	ProgProperties *ProgProperties `json:"prog_properties,omitempty"`
+	ProgProperties ProgramProperties `json:"prog_properties,omitempty"`
 }
 
 // FindMapByIdent 通过标识符查找 Map

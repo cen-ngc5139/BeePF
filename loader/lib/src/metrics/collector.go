@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
@@ -21,10 +22,10 @@ type Collector interface {
 	Stop() error
 
 	// GetPrograms 获取当前所有 BPF 程序信息
-	GetPrograms() ([]*Program, error)
+	GetPrograms() ([]*meta.ProgramStats, error)
 
 	// GetProgramStats 获取指定程序的统计信息
-	GetProgramStats(id uint32) (*Stats, error)
+	GetProgramStats(id uint32) (*meta.MetricsStats, error)
 
 	SetAttachedPros(map[uint32]*ebpf.Program) error
 
@@ -37,13 +38,13 @@ type StatsCollector struct {
 	mu sync.RWMutex
 
 	// 所有 BPF 程序的映射
-	programs map[uint32]*Program
+	programs map[uint32]*meta.ProgramStats
 
 	// 当前已经挂载的 program 实例
 	attachedPros map[uint32]*ebpf.Program
 
 	// 统计数据缓存
-	stats map[uint32]*Stats
+	stats map[uint32]*meta.MetricsStats
 
 	// 采集间隔
 	interval time.Duration
@@ -58,14 +59,14 @@ type StatsCollector struct {
 	closer io.Closer
 
 	// 导出器
-	exporterHandler Handler
+	exporterHandler meta.MetricsHandler
 
 	// 日志记录器
 	logger *zap.Logger
 }
 
 // NewCollector 创建一个新的收集器实例
-func NewStatsCollector(interval time.Duration, exporterHandler Handler, logger *zap.Logger) (Collector, error) {
+func NewStatsCollector(interval time.Duration, exporterHandler meta.MetricsHandler, logger *zap.Logger) (Collector, error) {
 	// 检查内核版本并启用 BPF stats
 	closer, err := EnableBPFStats()
 	if err != nil {
@@ -73,8 +74,8 @@ func NewStatsCollector(interval time.Duration, exporterHandler Handler, logger *
 	}
 
 	c := &StatsCollector{
-		programs:        make(map[uint32]*Program),
-		stats:           make(map[uint32]*Stats),
+		programs:        make(map[uint32]*meta.ProgramStats),
+		stats:           make(map[uint32]*meta.MetricsStats),
 		interval:        interval,
 		stopCh:          make(chan struct{}),
 		closer:          closer,
@@ -119,18 +120,18 @@ func (c *StatsCollector) Stop() error {
 	return nil
 }
 
-func (c *StatsCollector) GetPrograms() ([]*Program, error) {
+func (c *StatsCollector) GetPrograms() ([]*meta.ProgramStats, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	programs := make([]*Program, 0, len(c.programs))
+	programs := make([]*meta.ProgramStats, 0, len(c.programs))
 	for _, p := range c.programs {
 		programs = append(programs, p.Clone())
 	}
 	return programs, nil
 }
 
-func (c *StatsCollector) GetProgramStats(id uint32) (*Stats, error) {
+func (c *StatsCollector) GetProgramStats(id uint32) (*meta.MetricsStats, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -138,7 +139,8 @@ func (c *StatsCollector) GetProgramStats(id uint32) (*Stats, error) {
 	if !ok {
 		return nil, fmt.Errorf("program %d not found", id)
 	}
-	return stats.Clone(), nil
+
+	return stats, nil
 }
 
 // collect 执行实际的数据采集
@@ -179,7 +181,7 @@ func (c *StatsCollector) UpdateStats() error {
 		// 更新或创建程序信息
 		program, ok := c.programs[uint32(id)]
 		if !ok {
-			program = NewProgram(prog)
+			program = meta.NewProgram(prog)
 			c.programs[uint32(id)] = program
 		}
 		program.Update(prog)
@@ -187,7 +189,7 @@ func (c *StatsCollector) UpdateStats() error {
 		// 更新统计信息
 		stats, ok := c.stats[uint32(id)]
 		if !ok {
-			stats = NewStats()
+			stats = meta.NewStats()
 			c.stats[uint32(id)] = stats
 		}
 		stats.Update(program)

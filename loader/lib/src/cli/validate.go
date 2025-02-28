@@ -2,24 +2,13 @@ package loader
 
 import (
 	"fmt"
-	"time"
-
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
+	"time"
 )
 
 func ValidateAndMutateConfig(cfg *Config) error {
 	if cfg.ObjectPath == "" {
 		return fmt.Errorf("object path is required")
-	}
-
-	//if cfg.StructName == "" {
-	//	return fmt.Errorf("struct name is required")
-	//}
-
-	if cfg.UserExporterHandler == nil {
-		cfg.UserExporterHandler = &export.MyCustomHandler{
-			Logger: cfg.Logger,
-		}
 	}
 
 	if cfg.Logger == nil {
@@ -30,9 +19,13 @@ func ValidateAndMutateConfig(cfg *Config) error {
 		cfg.PollTimeout = 1 * time.Second
 	}
 
-	if cfg.IsEnableStats {
-		if cfg.StatsInterval == 0 {
-			cfg.StatsInterval = 1 * time.Second
+	if cfg.Properties.Maps == nil || cfg.Properties.EventHandler == nil {
+		cfg.Properties.EventHandler = &export.MyCustomHandler{Logger: cfg.Logger}
+	}
+
+	if cfg.Properties.Stats != nil {
+		if cfg.Properties.Stats.Interval == 0 {
+			cfg.Properties.Stats.Interval = 1 * time.Second
 		}
 	}
 
