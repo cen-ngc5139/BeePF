@@ -2,6 +2,7 @@ package meta
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -22,7 +23,7 @@ func (p *ProgMeta) AttachProgram(spec *ebpf.ProgramSpec, program *ebpf.Program, 
 	case ebpf.SocketFilter:
 		return p.attachSocket()
 	case ebpf.SchedCLS:
-		return p.attachTCCLS()
+		return p.attachTCCLS(program, properties)
 	case ebpf.XDP:
 		return p.attachXDP()
 	case ebpf.RawTracepoint:
@@ -73,6 +74,7 @@ func (p *ProgMeta) attachKprobe(program *ebpf.Program) (link.Link, error) {
 }
 
 func (p *ProgMeta) attachUprobe(program *ebpf.Program) (link.Link, error) {
+	// todo: 需要实现
 	return nil, nil
 }
 
@@ -112,14 +114,39 @@ func (p *ProgMeta) attachCGroup(program *ebpf.Program, typ ebpf.AttachType, cgro
 }
 
 func (p *ProgMeta) attachSocket() (link.Link, error) {
+	// todo: 需要实现
 	return nil, nil
 }
 
-func (p *ProgMeta) attachTCCLS() (link.Link, error) {
-	return nil, nil
+func (p *ProgMeta) attachTCCLS(program *ebpf.Program, properties *ProgProperties) (link.Link, error) {
+	if properties.Tc == nil {
+		return nil, fmt.Errorf("prog %s invalid tc properties", p.Name)
+	}
+
+	if properties.Tc.Ifindex == 0 && properties.Tc.Ifname == "" {
+		return nil, fmt.Errorf("prog %s invalid tc properties", p.Name)
+	}
+
+	ntl, err := net.InterfaceByName(properties.Tc.Ifname)
+	if err != nil {
+		return nil, fmt.Errorf("prog %s invalid tc properties", p.Name)
+	}
+
+	// Attach the program to Ingress TC.
+	link, err := link.AttachTCX(link.TCXOptions{
+		Interface: ntl.Index,
+		Program:   program,
+		Attach:    properties.Tc.AttachType,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error:%v , couldn's activate tc ingress %s, matchFuncName:%s", err, p.Attach, p.Name)
+	}
+
+	return link, nil
 }
 
 func (p *ProgMeta) attachXDP() (link.Link, error) {
+	// todo: 需要实现
 	return nil, nil
 }
 

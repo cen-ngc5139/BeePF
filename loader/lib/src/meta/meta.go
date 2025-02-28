@@ -3,6 +3,7 @@ package meta
 import (
 	"encoding/json"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
 )
 
@@ -361,4 +362,18 @@ type ProgProperties struct {
 
 	// PinPath 用于指定 eBPF 程序的 pin 路径，下次加载时从该路径加载
 	PinPath string
+
+	// Tc 流量控制配置
+	Tc *TCCLSProperties
+}
+
+type TCCLSProperties struct {
+	// Ifindex 接口索引
+	Ifindex int32
+
+	// Ifname 接口名称
+	Ifname string
+
+	// AttachType 附加点类型
+	AttachType ebpf.AttachType
 }
