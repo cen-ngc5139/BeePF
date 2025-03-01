@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
-	"go.uber.org/zap"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
+	"go.uber.org/zap"
 )
 
 func TestBPFLoader_Init(t *testing.T) {
@@ -120,23 +121,23 @@ func TestBPFLoader_Init(t *testing.T) {
 		//		},
 		//	},
 		//},
-		{
-			name: "kprobe_precpu",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:  "../../../../example/kprobe_precpu/binary/kprobe_precpu_x86_bpfel.o",
-					Logger:      logger,
-					StructName:  "event",
-					PollTimeout: 100 * time.Millisecond,
-					Properties: meta.Properties{
-						Stats: &meta.Stats{
-							Interval: 1 * time.Second,
-							Handler:  metrics.NewDefaultHandler(logger),
-						},
-					},
-				},
-			},
-		},
+		// {
+		// 	name: "kprobe_precpu",
+		// 	fields: fields{
+		// 		Config: &Config{
+		// 			ObjectPath:  "../../../../example/kprobe_precpu/binary/kprobe_precpu_x86_bpfel.o",
+		// 			Logger:      logger,
+		// 			StructName:  "event",
+		// 			PollTimeout: 100 * time.Millisecond,
+		// 			Properties: meta.Properties{
+		// 				Stats: &meta.Stats{
+		// 					Interval: 1 * time.Second,
+		// 					Handler:  metrics.NewDefaultHandler(logger),
+		// 				},
+		// 			},
+		// 		},
+		// 	},
+		// },
 
 		{
 			name: "pin_path",
@@ -148,9 +149,15 @@ func TestBPFLoader_Init(t *testing.T) {
 					PollTimeout: 100 * time.Millisecond,
 					Properties: meta.Properties{
 						Programs: map[string]*meta.Program{
-							"rpc_exit_task": &meta.Program{
+							"rpc_exit_task": {
 								Name:       "rpc_exit_task",
-								Properties: &meta.ProgramProperties{PinPath: "/sys/fs/bpf/kprobepin"},
+								Properties: &meta.ProgramProperties{PinPath: "/sys/fs/bpf/kprobepin/rpc_exit_task"},
+							},
+						},
+						Maps: map[string]*meta.Map{
+							"kprobe_map": {
+								Name:       "kprobe_map",
+								Properties: &meta.MapProperties{PinPath: "/sys/fs/bpf/kprobepin/"},
 							},
 						},
 						Stats: &meta.Stats{

@@ -167,7 +167,10 @@ func convertMaps(maps map[string]*ebpf.MapSpec, properties Properties) map[strin
 		if properties.Maps != nil {
 			m, ok := properties.Maps[name]
 			if ok {
-				meta.ExportHandler = m.ExportHandler
+				if m.ExportHandler != nil {
+					meta.ExportHandler = m.ExportHandler
+				}
+				meta.Properties = m.Properties
 			}
 		}
 

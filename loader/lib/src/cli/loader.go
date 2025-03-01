@@ -307,6 +307,10 @@ func (l *BPFLoader) Stop() error {
 	// 3. 关闭所有 links，因为它们引用了 programs
 	l.Logger.Info("closing links")
 	for _, link := range l.Links {
+		if err := link.Unpin(); err != nil {
+			l.Logger.Error("failed to unpin link", zap.Error(err))
+		}
+
 		if err := link.Close(); err != nil {
 			l.Logger.Error("failed to close link", zap.Error(err))
 		}

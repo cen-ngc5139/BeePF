@@ -156,6 +156,9 @@ type MapMeta struct {
 	// Interpreter 缓冲区值解释器配置
 	Interpreter BufferValueInterpreter `json:"interpreter"`
 
+	// Properties map 配置
+	Properties *MapProperties `json:"properties,omitempty"`
+
 	// ExportHandler 导出处理器
 	ExportHandler EventHandler `json:"export_handler"`
 }
