@@ -10,7 +10,6 @@ import (
 	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 	"go.uber.org/zap"
 )
 
@@ -33,21 +32,20 @@ func main() {
 	}
 
 	config := &loader.Config{
-		ObjectPath:    "./binary/cgroup_skb_x86_bpfel.o",
-		Logger:        logger,
-		StructName:    "pkt_count",
-		PollTimeout:   100 * time.Millisecond,
-		IsEnableStats: true,
-		StatsInterval: 1 * time.Second,
-		ProgProperties: &meta.ProgProperties{
-			CGroupPath: cgroupPath,
-		},
-		// 设置用户自定义的 map 数据导出处理器
-		UserExporterHandler: &export.MyCustomHandler{
-			Logger: logger,
-		},
-		UserMetricsHandler: &metrics.DefaultHandler{
-			Logger: logger,
+		ObjectPath:  "./binary/cgroup_skb_x86_bpfel.o",
+		Logger:      logger,
+		StructName:  "cgroup_skb_t",
+		PollTimeout: 100 * time.Millisecond,
+		Properties: meta.Properties{
+			Programs: map[string]*meta.Program{
+				"count_egress_packets": {
+					Properties: &meta.ProgramProperties{CGroupPath: cgroupPath},
+				},
+			},
+			Stats: &meta.Stats{
+				Interval: 1 * time.Second,
+				Handler:  metrics.NewDefaultHandler(logger),
+			},
 		},
 	}
 

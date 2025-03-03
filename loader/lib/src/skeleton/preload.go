@@ -43,7 +43,7 @@ func (p *PreLoadBpfSkeleton) MergeMapProperties() (map[string]*ebpf.Map, error) 
 // 检查 prog、map meta 是否设置了 pinPath，如果设置了，则将程序 pin 到文件系统
 func (p *PreLoadBpfSkeleton) CheckPinPath(replaceMaps map[string]*ebpf.Map) error {
 	for _, mapMeta := range p.Meta.BpfSkel.Maps {
-		if mapMeta.Properties.PinPath == "" {
+		if mapMeta.Properties == nil || mapMeta.Properties.PinPath == "" {
 			continue
 		}
 

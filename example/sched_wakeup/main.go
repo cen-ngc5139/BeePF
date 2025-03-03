@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 
@@ -23,18 +24,21 @@ func main() {
 	defer logger.Sync()
 
 	config := &loader.Config{
-		ObjectPath:    "./binary/shepherd_x86_bpfel.o",
-		Logger:        logger,
-		StructName:    "sched_latency_t",
-		PollTimeout:   100 * time.Millisecond,
-		IsEnableStats: true,
-		StatsInterval: 1 * time.Second,
-		// 设置用户自定义的 map 数据导出处理器
-		UserExporterHandler: &export.MyCustomHandler{
-			Logger: logger,
-		},
-		UserMetricsHandler: &metrics.DefaultHandler{
-			Logger: logger,
+		ObjectPath:  "./binary/shepherd_x86_bpfel.o",
+		Logger:      logger,
+		StructName:  "sched_latency_t",
+		PollTimeout: 100 * time.Millisecond,
+		Properties: meta.Properties{
+			Maps: map[string]*meta.Map{
+				"sched_events": &meta.Map{
+					Name:          "sched_events",
+					ExportHandler: &export.MyCustomHandler{Logger: logger},
+				},
+			},
+			Stats: &meta.Stats{
+				Interval: 1 * time.Second,
+				Handler:  metrics.NewDefaultHandler(logger),
+			},
 		},
 	}
 

@@ -6,8 +6,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 
 	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
 	"go.uber.org/zap"
@@ -25,18 +25,15 @@ func main() {
 	defer logger.Sync()
 
 	config := &loader.Config{
-		ObjectPath:    "./binary/kprobe_x86_bpfel.o",
-		Logger:        logger,
-		StructName:    "EventData",
-		PollTimeout:   100 * time.Millisecond,
-		IsEnableStats: true,
-		StatsInterval: 1 * time.Second,
-		// 设置用户自定义的 map 数据导出处理器
-		UserExporterHandler: &export.MyCustomHandler{
-			Logger: logger,
-		},
-		UserMetricsHandler: &metrics.DefaultHandler{
-			Logger: logger,
+		ObjectPath:  "./binary/kprobe_x86_bpfel.o",
+		Logger:      logger,
+		StructName:  "EventData",
+		PollTimeout: 100 * time.Millisecond,
+		Properties: meta.Properties{
+			Stats: &meta.Stats{
+				Interval: 1 * time.Second,
+				Handler:  metrics.NewDefaultHandler(logger),
+			},
 		},
 	}
 

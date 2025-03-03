@@ -75,7 +75,7 @@ func TestBPFLoader_Init(t *testing.T) {
 					PollTimeout: 100 * time.Millisecond,
 					Properties: meta.Properties{
 						Programs: map[string]*meta.Program{
-							"count_egress_packets": &meta.Program{
+							"count_egress_packets": {
 								Properties: &meta.ProgramProperties{CGroupPath: cgroupPath},
 							},
 						},

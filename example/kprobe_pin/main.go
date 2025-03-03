@@ -6,11 +6,9 @@ import (
 	"syscall"
 	"time"
 
+	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
 	meta "github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
-
-	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
 	"go.uber.org/zap"
 )
 
@@ -26,21 +24,27 @@ func main() {
 	defer logger.Sync()
 
 	config := &loader.Config{
-		ObjectPath:    "./binary/kprobepin_x86_bpfel.o",
-		Logger:        logger,
-		StructName:    "event",
-		PollTimeout:   100 * time.Millisecond,
-		IsEnableStats: true,
-		StatsInterval: 1 * time.Second,
-		ProgProperties: &meta.ProgProperties{
-			CGroupPath: "/sys/fs/cgroup/unified",
-		},
-		// 设置用户自定义的 map 数据导出处理器
-		UserExporterHandler: &export.MyCustomHandler{
-			Logger: logger,
-		},
-		UserMetricsHandler: &metrics.DefaultHandler{
-			Logger: logger,
+		ObjectPath:  "./binary/kprobepin_x86_bpfel.o",
+		Logger:      logger,
+		StructName:  "event",
+		PollTimeout: 100 * time.Millisecond,
+		Properties: meta.Properties{
+			Programs: map[string]*meta.Program{
+				"rpc_exit_task": {
+					Name:       "rpc_exit_task",
+					Properties: &meta.ProgramProperties{PinPath: "/sys/fs/bpf/kprobepin/rpc_exit_task"},
+				},
+			},
+			Maps: map[string]*meta.Map{
+				"kprobe_map": {
+					Name:       "kprobe_map",
+					Properties: &meta.MapProperties{PinPath: "/sys/fs/bpf/kprobepin/"},
+				},
+			},
+			Stats: &meta.Stats{
+				Interval: 1 * time.Second,
+				Handler:  metrics.NewDefaultHandler(logger),
+			},
 		},
 	}
 
