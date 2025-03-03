@@ -23,6 +23,7 @@ func TestRingBufferPoller_Poll(t *testing.T) {
 		processor                  EventProcessor
 		errorFlag                  *atomic.Bool
 		timeout                    time.Duration
+		Properties                 meta.Properties
 	}
 	tests := []struct {
 		name    string
@@ -34,12 +35,13 @@ func TestRingBufferPoller_Poll(t *testing.T) {
 			fields: fields{
 				BinaryPath:     "../../../testdata/shepherd_x86_bpfel.o",
 				BtfArchivePath: "../../../testdata/",
+				Properties:     meta.Properties{},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pkg, err := meta.GenerateComposedObject(tt.fields.BinaryPath)
+			pkg, err := meta.GenerateComposedObject(tt.fields.BinaryPath, tt.fields.Properties)
 			if err != nil {
 				t.Errorf("GenerateComposedObject() error = %v", err)
 				return

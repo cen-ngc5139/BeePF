@@ -87,7 +87,7 @@ func TestProgMeta_AttachProgram(t *testing.T) {
 				Attach: tt.fields.Attach,
 				Link:   tt.fields.Link,
 			}
-			got, err := p.AttachProgram(progSpec, prog, tt.fields.ProgProperties)
+			got, err := p.AttachProgram(progSpec, prog)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("AttachProgram() error = %v, wantErr %v", err, tt.wantErr)
 				return

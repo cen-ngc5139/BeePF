@@ -42,21 +42,6 @@ func (p *PreLoadBpfSkeleton) MergeMapProperties() (map[string]*ebpf.Map, error) 
 
 // 检查 prog、map meta 是否设置了 pinPath，如果设置了，则将程序 pin 到文件系统
 func (p *PreLoadBpfSkeleton) CheckPinPath(replaceMaps map[string]*ebpf.Map) error {
-	for _, progMeta := range p.Meta.BpfSkel.Progs {
-		if progMeta.Properties.PinPath == "" {
-			continue
-		}
-
-		_, err := p.LoadPinProgram(progMeta)
-		if err != nil {
-			if err == meta.ErrPinnedObjectNotFound {
-				continue
-			}
-
-			return err
-		}
-	}
-
 	for _, mapMeta := range p.Meta.BpfSkel.Maps {
 		if mapMeta.Properties.PinPath == "" {
 			continue
@@ -146,7 +131,7 @@ func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, error) {
 		}
 
 		// 根据不同的 AttachType 使用对应的 attach 方式
-		link, err := progMeta.AttachProgram(progSpec, prog, progMeta.Properties)
+		link, err := progMeta.AttachProgram(progSpec, prog)
 		if err != nil {
 			return nil, fmt.Errorf("attach program %s error: %w", progMeta.Name, err)
 		}

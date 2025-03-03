@@ -17,6 +17,8 @@ func TestPreLoadBpfSkeleton_LoadAndAttach(t *testing.T) {
 		Spec                       *ebpf.CollectionSpec
 		MapValueSizes              map[string]uint32
 		RawElf                     *container.ElfContainer
+
+		Properties meta.Properties
 	}
 	tests := []struct {
 		name    string
@@ -29,13 +31,14 @@ func TestPreLoadBpfSkeleton_LoadAndAttach(t *testing.T) {
 			fields: fields{
 				BinaryPath:     "../../../testdata/shepherd_x86_bpfel.o",
 				BtfArchivePath: "../../../testdata/",
+				Properties:     meta.Properties{},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			pkg, err := meta.GenerateComposedObject(tt.fields.BinaryPath)
+			pkg, err := meta.GenerateComposedObject(tt.fields.BinaryPath, tt.fields.Properties)
 			if err != nil {
 				t.Errorf("GenerateComposedObject() error = %v", err)
 				return

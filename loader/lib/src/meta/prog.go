@@ -3,6 +3,8 @@ package meta
 import (
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -10,31 +12,47 @@ import (
 )
 
 // AttachProgram 根据程序类型选择合适的 attach 方式
-func (p *ProgMeta) AttachProgram(spec *ebpf.ProgramSpec, program *ebpf.Program, properties *ProgramProperties) (link.Link, error) {
+func (p *ProgMeta) AttachProgram(spec *ebpf.ProgramSpec, program *ebpf.Program) (link link.Link, err error) {
+
 	switch spec.Type {
 	case ebpf.UnspecifiedProgram:
-		return nil, fmt.Errorf("error:%v, %s", ErrSectionFormat, "invalid program type, make sure to use the right section prefix")
+		err = fmt.Errorf("error:%v, %s", ErrSectionFormat, "invalid program type, make sure to use the right section prefix")
+		return
 	case ebpf.Kprobe:
-		return p.attachKprobe(program)
+		link, err = p.attachKprobe(program)
 	case ebpf.TracePoint:
-		return p.attachTracepoint(program)
+		link, err = p.attachTracepoint(program)
 	case ebpf.CGroupDevice, ebpf.CGroupSKB, ebpf.CGroupSock, ebpf.SockOps, ebpf.CGroupSockAddr, ebpf.CGroupSockopt, ebpf.CGroupSysctl:
-		return p.attachCGroup(program, spec.AttachType, properties.CGroupPath)
+		link, err = p.attachCGroup(program, spec.AttachType, p.Properties.CGroupPath)
 	case ebpf.SocketFilter:
-		return p.attachSocket()
+		link, err = p.attachSocket()
 	case ebpf.SchedCLS:
-		return p.attachTCCLS(program, properties)
+		link, err = p.attachTCCLS(program)
 	case ebpf.XDP:
-		return p.attachXDP()
+		link, err = p.attachXDP()
 	case ebpf.RawTracepoint:
-		return p.attachRawTracepoint(program)
+		link, err = p.attachRawTracepoint(program)
 	case ebpf.Tracing:
-		return p.attachTracing(program)
+		link, err = p.attachTracing(program)
 	case ebpf.LSM:
-		return p.attachLsm()
+		link, err = p.attachLsm()
 	default:
-		return nil, fmt.Errorf("program type %s not implemented yet", spec.Type)
+		err = fmt.Errorf("program type %s not implemented yet", spec.Type)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果设置了 PinPath，则将程序固定到文件系统
+	if p.Properties.PinPath != "" {
+		err = p.PinProgram(program)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return link, nil
 }
 
 func (p *ProgMeta) attachTracing(program *ebpf.Program) (link.Link, error) {
@@ -118,16 +136,16 @@ func (p *ProgMeta) attachSocket() (link.Link, error) {
 	return nil, nil
 }
 
-func (p *ProgMeta) attachTCCLS(program *ebpf.Program, properties *ProgramProperties) (link.Link, error) {
-	if properties.Tc == nil {
+func (p *ProgMeta) attachTCCLS(program *ebpf.Program) (link.Link, error) {
+	if p.Properties.Tc == nil {
 		return nil, fmt.Errorf("prog %s invalid tc properties", p.Name)
 	}
 
-	if properties.Tc.Ifindex == 0 && properties.Tc.Ifname == "" {
+	if p.Properties.Tc.Ifindex == 0 && p.Properties.Tc.Ifname == "" {
 		return nil, fmt.Errorf("prog %s invalid tc properties", p.Name)
 	}
 
-	ntl, err := net.InterfaceByName(properties.Tc.Ifname)
+	ntl, err := net.InterfaceByName(p.Properties.Tc.Ifname)
 	if err != nil {
 		return nil, fmt.Errorf("prog %s invalid tc properties", p.Name)
 	}
@@ -136,7 +154,7 @@ func (p *ProgMeta) attachTCCLS(program *ebpf.Program, properties *ProgramPropert
 	link, err := link.AttachTCX(link.TCXOptions{
 		Interface: ntl.Index,
 		Program:   program,
-		Attach:    properties.Tc.AttachType,
+		Attach:    p.Properties.Tc.AttachType,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error:%v , couldn's activate tc ingress %s, matchFuncName:%s", err, p.Attach, p.Name)
@@ -165,4 +183,58 @@ func (p *ProgMeta) attachRawTracepoint(program *ebpf.Program) (link.Link, error)
 
 func (p *ProgMeta) attachLsm() (link.Link, error) {
 	return nil, nil
+}
+
+// PinProgram 将程序固定到文件系统
+func (p *ProgMeta) PinProgram(program *ebpf.Program) error {
+	if p.Properties == nil || p.Properties.PinPath == "" {
+		return nil
+	}
+
+	pinPath := p.Properties.PinPath
+
+	// 确保目录存在
+	if err := os.MkdirAll(filepath.Dir(pinPath), 0755); err != nil {
+		return fmt.Errorf("create pin directory error: %w", err)
+	}
+
+	// 检查是否已存在 pinned program
+	existingProg, err := ebpf.LoadPinnedProgram(pinPath, nil)
+	if err == nil {
+		defer existingProg.Close() // 只关闭我们加载的引用，不影响已 pin 的程序
+
+		// 获取现有程序和新程序的信息
+		existingInfo, err := existingProg.Info()
+		if err != nil {
+			return fmt.Errorf("get existing program info error: %w", err)
+		}
+
+		progInfo, err := program.Info()
+		if err != nil {
+			return fmt.Errorf("get program info error: %w", err)
+		}
+
+		// 检查程序类型和名称是否匹配
+		if existingInfo.Type != progInfo.Type || existingInfo.Name != progInfo.Name {
+			return fmt.Errorf("pin path %s already exists with different program (existing: type=%s, name=%s; new: type=%s, name=%s)",
+				pinPath,
+				existingInfo.Type,
+				existingInfo.Name,
+				progInfo.Type,
+				progInfo.Name)
+		}
+
+		// 类型和名称匹配，直接返回
+		if err := os.Remove(pinPath); err != nil {
+			return fmt.Errorf("remove mismatched pinned program error: %w", err)
+		}
+		return nil
+	}
+
+	// Pin 新程序
+	if err := program.Pin(pinPath); err != nil {
+		return fmt.Errorf("pin program %s error: %w", p.Name, err)
+	}
+
+	return nil
 }

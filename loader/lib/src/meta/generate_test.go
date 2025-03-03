@@ -73,6 +73,7 @@ func TestGenerateMeta(t *testing.T) {
 func TestGenerateComposedObject(t *testing.T) {
 	type args struct {
 		objectFile string
+		properties Properties
 	}
 	tests := []struct {
 		name    string
@@ -84,13 +85,14 @@ func TestGenerateComposedObject(t *testing.T) {
 			name: "test",
 			args: args{
 				objectFile: "../../../testdata/shepherd_x86_bpfel.o",
+				properties: Properties{},
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GenerateComposedObject(tt.args.objectFile)
+			got, err := GenerateComposedObject(tt.args.objectFile, tt.args.properties)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateComposedObject() error = %v, wantErr %v", err, tt.wantErr)
 				return

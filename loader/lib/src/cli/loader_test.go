@@ -11,6 +11,7 @@ import (
 
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 	"go.uber.org/zap"
 )
 
@@ -40,104 +41,104 @@ func TestBPFLoader_Init(t *testing.T) {
 		fields  fields
 		wantErr bool
 	}{
-		//{
-		//	name: "sched_wakeup",
-		//	fields: fields{
-		//		Config: &Config{
-		//			ObjectPath:  "../../../../example/sched_wakeup/binary/shepherd_x86_bpfel.o",
-		//			Logger:      logger,
-		//			StructName:  "sched_latency_t",
-		//			PollTimeout: 100 * time.Millisecond,
-		//			Properties: meta.Properties{
-		//				Maps: map[string]*meta.Map{
-		//					"sched_events": &meta.Map{
-		//						Name:          "sched_events",
-		//						ExportHandler: &export.MyCustomHandler{Logger: logger},
-		//					},
-		//				},
-		//				Stats: &meta.Stats{
-		//					Interval: 1 * time.Second,
-		//					Handler:  metrics.NewDefaultHandler(logger),
-		//				},
-		//			},
-		//		},
-		//	},
-		//},
+		{
+			name: "sched_wakeup",
+			fields: fields{
+				Config: &Config{
+					ObjectPath:  "../../../../example/sched_wakeup/binary/shepherd_x86_bpfel.o",
+					Logger:      logger,
+					StructName:  "sched_latency_t",
+					PollTimeout: 100 * time.Millisecond,
+					Properties: meta.Properties{
+						Maps: map[string]*meta.Map{
+							"sched_events": &meta.Map{
+								Name:          "sched_events",
+								ExportHandler: &export.MyCustomHandler{Logger: logger},
+							},
+						},
+						Stats: &meta.Stats{
+							Interval: 1 * time.Second,
+							Handler:  metrics.NewDefaultHandler(logger),
+						},
+					},
+				},
+			},
+		},
 
-		//{
-		//	name: "cgroup_skb",
-		//	fields: fields{
-		//		Config: &Config{
-		//			ObjectPath:  "../../../../example/cgroup_skb/binary/cgroup_skb_x86_bpfel.o",
-		//			Logger:      logger,
-		//			StructName:  "cgroup_skb_t",
-		//			PollTimeout: 100 * time.Millisecond,
-		//			Properties: meta.Properties{
-		//				Programs: map[string]*meta.Program{
-		//					"count_egress_packets": &meta.Program{
-		//						Properties: &meta.ProgramProperties{CGroupPath: cgroupPath},
-		//					},
-		//				},
-		//				Stats: &meta.Stats{
-		//					Interval: 1 * time.Second,
-		//					Handler:  metrics.NewDefaultHandler(logger),
-		//				},
-		//			},
-		//		},
-		//	},
-		//},
-		//
-		//{
-		//	name: "fentry",
-		//	fields: fields{
-		//		Config: &Config{
-		//			ObjectPath:  "../../../../example/fentry/binary/fentry_x86_bpfel.o",
-		//			Logger:      logger,
-		//			StructName:  "event",
-		//			PollTimeout: 100 * time.Millisecond,
-		//			Properties: meta.Properties{
-		//				Stats: &meta.Stats{
-		//					Interval: 1 * time.Second,
-		//					Handler:  metrics.NewDefaultHandler(logger),
-		//				},
-		//			},
-		//		},
-		//	},
-		//},
-		//
-		//{
-		//	name: "kprobe",
-		//	fields: fields{
-		//		Config: &Config{
-		//			ObjectPath:  "../../../../example/kprobe/binary/kprobe_x86_bpfel.o",
-		//			Logger:      logger,
-		//			PollTimeout: 100 * time.Millisecond,
-		//			Properties: meta.Properties{
-		//				Stats: &meta.Stats{
-		//					Interval: 1 * time.Second,
-		//					Handler:  metrics.NewDefaultHandler(logger),
-		//				},
-		//			},
-		//		},
-		//	},
-		//},
-		// {
-		// 	name: "kprobe_precpu",
-		// 	fields: fields{
-		// 		Config: &Config{
-		// 			ObjectPath:  "../../../../example/kprobe_precpu/binary/kprobe_precpu_x86_bpfel.o",
-		// 			Logger:      logger,
-		// 			StructName:  "event",
-		// 			PollTimeout: 100 * time.Millisecond,
-		// 			Properties: meta.Properties{
-		// 				Stats: &meta.Stats{
-		// 					Interval: 1 * time.Second,
-		// 					Handler:  metrics.NewDefaultHandler(logger),
-		// 				},
-		// 			},
-		// 		},
-		// 	},
-		// },
+		{
+			name: "cgroup_skb",
+			fields: fields{
+				Config: &Config{
+					ObjectPath:  "../../../../example/cgroup_skb/binary/cgroup_skb_x86_bpfel.o",
+					Logger:      logger,
+					StructName:  "cgroup_skb_t",
+					PollTimeout: 100 * time.Millisecond,
+					Properties: meta.Properties{
+						Programs: map[string]*meta.Program{
+							"count_egress_packets": &meta.Program{
+								Properties: &meta.ProgramProperties{CGroupPath: cgroupPath},
+							},
+						},
+						Stats: &meta.Stats{
+							Interval: 1 * time.Second,
+							Handler:  metrics.NewDefaultHandler(logger),
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "fentry",
+			fields: fields{
+				Config: &Config{
+					ObjectPath:  "../../../../example/fentry/binary/fentry_x86_bpfel.o",
+					Logger:      logger,
+					StructName:  "event",
+					PollTimeout: 100 * time.Millisecond,
+					Properties: meta.Properties{
+						Stats: &meta.Stats{
+							Interval: 1 * time.Second,
+							Handler:  metrics.NewDefaultHandler(logger),
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "kprobe",
+			fields: fields{
+				Config: &Config{
+					ObjectPath:  "../../../../example/kprobe/binary/kprobe_x86_bpfel.o",
+					Logger:      logger,
+					PollTimeout: 100 * time.Millisecond,
+					Properties: meta.Properties{
+						Stats: &meta.Stats{
+							Interval: 1 * time.Second,
+							Handler:  metrics.NewDefaultHandler(logger),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "kprobe_precpu",
+			fields: fields{
+				Config: &Config{
+					ObjectPath:  "../../../../example/kprobe_precpu/binary/kprobe_precpu_x86_bpfel.o",
+					Logger:      logger,
+					StructName:  "event",
+					PollTimeout: 100 * time.Millisecond,
+					Properties: meta.Properties{
+						Stats: &meta.Stats{
+							Interval: 1 * time.Second,
+							Handler:  metrics.NewDefaultHandler(logger),
+						},
+					},
+				},
+			},
+		},
 
 		{
 			name: "pin_path",

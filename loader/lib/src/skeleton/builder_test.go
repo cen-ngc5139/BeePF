@@ -63,7 +63,7 @@ func TestBpfSkeletonBuilder_Build(t *testing.T) {
 
 func TestFromJsonPackage(t *testing.T) {
 
-	pkg, err := meta.GenerateComposedObject("../../../testdata/shepherd_x86_bpfel.o")
+	pkg, err := meta.GenerateComposedObject("../../../testdata/shepherd_x86_bpfel.o", meta.Properties{})
 	if err != nil {
 		t.Errorf("GenerateComposedObject() error = %v", err)
 		return
