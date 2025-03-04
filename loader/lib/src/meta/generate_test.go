@@ -47,7 +47,7 @@ func TestGenerateMeta(t *testing.T) {
 				return
 			}
 
-			got, err := GenerateMeta(objectFile)
+			got, err := GenerateMeta(objectFile, Properties{})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateMeta() error = %v, wantErr %v", err, tt.wantErr)
 				return

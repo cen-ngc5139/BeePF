@@ -18,14 +18,9 @@ func TestEventExporterBuilder_BuildForSingleValueWithTypeDescriptor(t *testing.T
 		ExportEventHandler meta.EventHandler
 		UserCtx            *meta.UserContext
 	}
-	type args struct {
-		typeDesc     TypeDescriptor
-		btfContainer *container.BTFContainer
-	}
 	tests := []struct {
 		name    string
 		fields  fields
-		args    args
 		want    *EventExporter
 		wantErr bool
 	}{
@@ -60,7 +55,7 @@ func TestEventExporterBuilder_BuildForSingleValueWithTypeDescriptor(t *testing.T
 				return
 			}
 
-			generateMeta, err := meta.GenerateMeta(raw)
+			generateMeta, err := meta.GenerateMeta(raw, meta.Properties{})
 			if err != nil {
 				t.Errorf("GenerateComposedObject() error = %v", err)
 				return

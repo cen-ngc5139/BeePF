@@ -13,11 +13,10 @@ import (
 // ⚠️ 该单元测试需要使用 IDE 远程单元测试，通过 ssh 连接到目标 linux 机器上运行
 func TestProgMeta_AttachProgram(t *testing.T) {
 	type fields struct {
-		BinaryPath     string
-		Name           string
-		Attach         string
-		Link           bool
-		ProgProperties *ProgProperties
+		BinaryPath string
+		Name       string
+		Attach     string
+		Link       bool
 	}
 	type args struct {
 		spec    *ebpf.ProgramSpec
@@ -37,9 +36,6 @@ func TestProgMeta_AttachProgram(t *testing.T) {
 				Name:       "sched_wakeup",
 				Attach:     "tp_btf/sched_wakeup",
 				Link:       true,
-				ProgProperties: &ProgProperties{
-					CGroupPath: "/sys/fs/cgroup/bpf",
-				},
 			},
 			args: args{
 				spec:    &ebpf.ProgramSpec{},

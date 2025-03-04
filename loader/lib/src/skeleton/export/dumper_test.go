@@ -17,9 +17,6 @@ func TestDumpToJson(t *testing.T) {
 	type args struct {
 		specFile string
 		binFile  string
-		spec     *btf.Spec
-		typ      btf.Type
-		data     []byte
 	}
 	tests := []struct {
 		name    string
@@ -65,11 +62,9 @@ func TestDumpToJson(t *testing.T) {
 
 func TestDumpToJsonWithCheckedTypes(t *testing.T) {
 	type args struct {
-		specFile     string
-		binFile      string
-		checkedTypes []CheckedExportedMember
-		data         []byte
-		skipDiff     bool
+		specFile string
+		binFile  string
+		skipDiff bool
 	}
 	tests := []struct {
 		name    string
@@ -105,7 +100,7 @@ func TestDumpToJsonWithCheckedTypes(t *testing.T) {
 			binData, err := os.ReadFile(tt.args.binFile)
 			require.NoError(t, err, "Failed to read binary test data")
 
-			generateMeta, err := meta.GenerateMeta(raw)
+			generateMeta, err := meta.GenerateMeta(raw, meta.Properties{})
 			if err != nil {
 				t.Errorf("GenerateComposedObject() error = %v", err)
 				return
@@ -165,11 +160,9 @@ func TestJSONUnmarshalInt64Precision(t *testing.T) {
 
 func TestDumpToStringWithCheckedTypes(t *testing.T) {
 	type args struct {
-		specFile     string
-		binFile      string
-		checkedTypes []CheckedExportedMember
-		data         []byte
-		out          *strings.Builder
+		specFile string
+		binFile  string
+		out      *strings.Builder
 	}
 	tests := []struct {
 		name    string
@@ -193,7 +186,7 @@ func TestDumpToStringWithCheckedTypes(t *testing.T) {
 				return
 			}
 
-			generateMeta, err := meta.GenerateMeta(raw)
+			generateMeta, err := meta.GenerateMeta(raw, meta.Properties{})
 			if err != nil {
 				t.Errorf("GenerateComposedObject() error = %v", err)
 				return

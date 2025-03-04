@@ -33,7 +33,7 @@ func TestCheckExportTypesBtf(t *testing.T) {
 				return
 			}
 
-			generateMeta, err := meta.GenerateMeta(raw)
+			generateMeta, err := meta.GenerateMeta(raw, meta.Properties{})
 			if err != nil {
 				t.Errorf("GenerateComposedObject() error = %v", err)
 				return
