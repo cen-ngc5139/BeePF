@@ -1,8 +1,8 @@
 -- 创建数据库   
-create database beepf;
+create database if not exists beepf;
 
 -- 集群表
-create table beepf.cluster
+create table if not exists beepf.cluster
 (
     id               bigint unsigned AUTO_INCREMENT NOT NULL PRIMARY KEY comment 'ID',
     cluster_name     varchar(100)                   NOT NULL DEFAULT '' comment '集群名称',

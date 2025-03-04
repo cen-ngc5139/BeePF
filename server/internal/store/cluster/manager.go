@@ -1,8 +1,8 @@
-package k8scluster
+package cluster
 
 import "github.com/cen-ngc5139/BeePF/server/models"
 
-type K8sCluster interface {
+type Cluster interface {
 	Create(cluster *models.Cluster) (err error)
 	Get(id int) (cluster models.Cluster, err error)
 	List(pageSize, pageNum int) (total int64, clusters []*models.Cluster, err error)

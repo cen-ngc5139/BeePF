@@ -1,12 +1,9 @@
 package cluster
 
 import (
-	s "github.com/cen-ngc5139/BeePF/server/internal/store/cluster"
 	"github.com/cen-ngc5139/BeePF/server/models"
 	"github.com/pkg/errors"
 )
-
-var store = &s.Store{}
 
 func (o *Operator) Create() (err error) {
 	if err = o.checkCluster(); err != nil {
@@ -71,24 +68,6 @@ func (o *Operator) List(attachs map[string]interface{}) (total int64, clusters [
 	if err != nil {
 		err = errors.Wrap(err, "获取真实集群失败")
 		return
-	}
-
-	if o.QueryParma.IsAdmin {
-		return
-	}
-
-	for _, cluster := range clusters {
-		isFound := false
-		for _, pm := range o.QueryParma.Authorized {
-			if pm == cluster.Name {
-				isFound = true
-				break
-			}
-		}
-
-		if !isFound {
-			cluster.KubeConfig = ""
-		}
 	}
 
 	return

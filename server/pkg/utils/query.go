@@ -1,17 +1,13 @@
 package utils
 
 type Query struct {
-	PageSize   int
-	PageNum    int
-	IsAdmin    bool
-	Authorized []string // 已经授权的集群列表
+	PageSize int
+	PageNum  int
 }
 
-func NewQueryParma(size, num int, isAdmin bool, authorized []string) *Query {
+func NewQueryParma(size, num int) *Query {
 	return &Query{
-		PageSize:   size,
-		PageNum:    num,
-		IsAdmin:    isAdmin,
-		Authorized: authorized,
+		PageSize: size,
+		PageNum:  num,
 	}
 }

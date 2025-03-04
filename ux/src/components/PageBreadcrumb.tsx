@@ -1,6 +1,8 @@
 import { Breadcrumb } from 'antd'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { HomeOutlined } from '@ant-design/icons'
+import { useEffect, useState } from 'react'
+import clusterService from '../services/clusterService'
 
 const breadcrumbNameMap: Record<string, string> = {
     '/clusters': '集群管理',
@@ -18,6 +20,23 @@ const PageBreadcrumb = () => {
     const location = useLocation()
     const params = useParams()
     const pathSnippets = location.pathname.split('/').filter((i) => i)
+    const [clusterName, setClusterName] = useState<string>('')
+
+    // 如果是编辑集群页面，获取集群名称
+    useEffect(() => {
+        const fetchClusterName = async () => {
+            if (location.pathname.startsWith('/clusters/edit/') && params.id) {
+                try {
+                    const cluster = await clusterService.getCluster(parseInt(params.id))
+                    setClusterName(cluster.cnname || cluster.name || '')
+                } catch (error) {
+                    console.error('获取集群名称失败:', error)
+                }
+            }
+        }
+
+        fetchClusterName()
+    }, [location.pathname, params.id])
 
     // 处理编辑页面的面包屑
     if (location.pathname.startsWith('/clusters/edit/')) {
@@ -37,7 +56,7 @@ const PageBreadcrumb = () => {
                         key: 'clusters-list',
                     },
                     {
-                        title: `编辑集群 ${params.id}`,
+                        title: `编辑集群${clusterName ? `: ${clusterName}` : ''}`,
                         key: 'edit-cluster',
                     },
                 ]}

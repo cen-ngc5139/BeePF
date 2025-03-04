@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/cen-ngc5139/BeePF/server/internal/database"
 	"log"
 
 	"github.com/cen-ngc5139/BeePF/server/conf"
@@ -13,6 +14,7 @@ func main() {
 	cfg := flag.String("config", "", "configuration file")
 	flag.Parse()
 	conf.ParseConfig(*cfg, true)
+	database.Setup()
 
 	gin.SetMode(gin.DebugMode)
 

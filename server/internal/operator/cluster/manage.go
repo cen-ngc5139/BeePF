@@ -4,17 +4,8 @@ import (
 	k8scluster "github.com/cen-ngc5139/BeePF/server/internal/store/cluster"
 	"github.com/cen-ngc5139/BeePF/server/models"
 	"github.com/cen-ngc5139/BeePF/server/pkg/utils"
+	"github.com/pkg/errors"
 )
-
-type Cluster interface {
-	Create() (err error)
-	Update(id int) (err error)
-	Get(id int) (cluster *models.Cluster, err error)
-	List() (total int64, clusters []*models.Cluster, err error)
-	Delete(id int) (err error)
-	Bound() (err error)
-	UnBound() (err error)
-}
 
 type Operator struct {
 	QueryParma   *utils.Query
@@ -23,9 +14,8 @@ type Operator struct {
 	User         string
 }
 
-func NewOperator(user string) *Operator {
+func NewOperator() *Operator {
 	return &Operator{
-		User:         user,
 		ClusterStore: &k8scluster.Store{},
 	}
 }
@@ -38,4 +28,15 @@ func (o *Operator) WithCluster(c *models.Cluster) *Operator {
 func (o *Operator) WithQueryParma(q *utils.Query) *Operator {
 	o.QueryParma = q
 	return o
+}
+
+func (o *Operator) checkCluster() (err error) {
+	basic := o.Cluster.ClusterBasic
+	// 必填校验
+	if err = basic.Validate(); err != nil {
+		err = errors.Wrap(err, "真实集群校验失败")
+		return
+	}
+
+	return
 }

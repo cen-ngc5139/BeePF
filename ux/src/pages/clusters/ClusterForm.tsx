@@ -1,16 +1,11 @@
 import { Form, Input, Select, Button, Space, message } from 'antd'
 import { useEffect } from 'react'
+import { Cluster } from '../../services/clusterService'
 
 interface ClusterFormProps {
-    initialValues?: {
-        id?: string
-        name: string
-        description: string
-        region: string
-        status: 'active' | 'inactive'
-    }
-    onSubmit: (values: any) => void
-    onCancel: () => void
+    initialValues?: Cluster;
+    onSubmit: (values: Cluster) => void;
+    onCancel: () => void;
 }
 
 const ClusterForm = ({ initialValues, onSubmit, onCancel }: ClusterFormProps) => {
@@ -31,10 +26,10 @@ const ClusterForm = ({ initialValues, onSubmit, onCancel }: ClusterFormProps) =>
         }
     }
 
-    const regions = [
-        { value: 'cn-north-1', label: '华北1（北京）' },
-        { value: 'cn-south-1', label: '华南1（广州）' },
-        { value: 'cn-east-1', label: '华东1（上海）' },
+    const environments = [
+        { value: 'prod', label: '生产环境' },
+        { value: 'test', label: '测试环境' },
+        { value: 'dev', label: '开发环境' },
     ]
 
     return (
@@ -42,7 +37,8 @@ const ClusterForm = ({ initialValues, onSubmit, onCancel }: ClusterFormProps) =>
             form={form}
             layout="vertical"
             initialValues={{
-                status: 'active',
+                status: 0,
+                environment: 'test',
             }}
         >
             <Form.Item
@@ -54,7 +50,15 @@ const ClusterForm = ({ initialValues, onSubmit, onCancel }: ClusterFormProps) =>
             </Form.Item>
 
             <Form.Item
-                name="description"
+                name="cnname"
+                label="中文名称"
+                rules={[{ required: true, message: '请输入集群中文名称' }]}
+            >
+                <Input placeholder="请输入集群中文名称" />
+            </Form.Item>
+
+            <Form.Item
+                name="desc"
                 label="描述"
                 rules={[{ required: true, message: '请输入集群描述' }]}
             >
@@ -62,11 +66,19 @@ const ClusterForm = ({ initialValues, onSubmit, onCancel }: ClusterFormProps) =>
             </Form.Item>
 
             <Form.Item
-                name="region"
-                label="区域"
-                rules={[{ required: true, message: '请选择区域' }]}
+                name="master"
+                label="主节点地址"
+                rules={[{ required: true, message: '请输入主节点地址' }]}
             >
-                <Select options={regions} placeholder="请选择区域" />
+                <Input placeholder="请输入主节点地址，例如：https://192.168.1.100:6443" />
+            </Form.Item>
+
+            <Form.Item
+                name="environment"
+                label="环境"
+                rules={[{ required: true, message: '请选择环境' }]}
+            >
+                <Select options={environments} placeholder="请选择环境" />
             </Form.Item>
 
             <Form.Item
@@ -76,8 +88,8 @@ const ClusterForm = ({ initialValues, onSubmit, onCancel }: ClusterFormProps) =>
             >
                 <Select
                     options={[
-                        { value: 'active', label: '运行中' },
-                        { value: 'inactive', label: '已停止' },
+                        { value: 0, label: '正常' },
+                        { value: 1, label: '停用' },
                     ]}
                 />
             </Form.Item>

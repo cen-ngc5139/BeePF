@@ -1,10 +1,10 @@
-package k8scluster
+package cluster
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/cen-ngc5139/BeePF/server/database"
+	"github.com/cen-ngc5139/BeePF/server/internal/database"
 	"github.com/cen-ngc5139/BeePF/server/models"
 
 	"github.com/pkg/errors"
@@ -48,12 +48,6 @@ func (s *Store) Get(id int) (cluster models.Cluster, err error) {
 		Where("deleted = ? AND id = ?", false, id).First(&cluster).Error
 	if err != nil {
 		err = errors.Wrap(err, "读取数据库失败")
-		return
-	}
-
-	err = database.DB.Model(&cluster).Preload("Clusters").First(&cluster).Error
-	if err != nil {
-		err = errors.Wrap(err, "真实集群关联查询虚拟集群失败")
 		return
 	}
 
