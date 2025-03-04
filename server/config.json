@@ -1,0 +1,9 @@
+{
+  "http": {
+    "enabled": true,
+    "listen": ":8080",
+    "backdoor": false
+  },
+  "logMode": "info",
+  "env": "dev"
+}
