@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons'
 import { BrowserRouter as Router, Route, Routes, Link, Navigate } from 'react-router-dom'
 import ComponentList from './pages/components/ComponentList'
+import ComponentDetail from './pages/components/ComponentDetail'
 import CreateComponent from './pages/components/CreateComponent'
 import ClusterList from './pages/clusters/ClusterList'
 import CreateCluster from './pages/clusters/CreateCluster'
@@ -129,6 +130,7 @@ function App() {
               <Route path="/clusters/edit/:id" element={<CreateCluster />} />
               <Route path="/components/list" element={<ComponentList />} />
               <Route path="/components/create" element={<CreateComponent />} />
+              <Route path="/component/:id" element={<ComponentDetail />} />
               <Route path="/observability" element={<div>可观测</div>} />
               <Route path="/workflow" element={<div>工作流</div>} />
             </Routes>

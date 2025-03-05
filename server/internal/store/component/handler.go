@@ -3,6 +3,7 @@ package component
 import (
 	"github.com/cen-ngc5139/BeePF/server/internal/database"
 	"github.com/cen-ngc5139/BeePF/server/models"
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
@@ -37,7 +38,14 @@ func (s *Store) List() (total int64, components []*models.Component, err error) 
 
 	components = make([]*models.Component, len(componentsDB))
 	for i, c := range componentsDB {
-		components[i] = c.ToComponent()
+		var current *models.Component
+		current, err = s.Get(c.ID)
+		if err != nil {
+			err = errors.Wrapf(err, "获取组件 %d 失败", c.ID)
+			return
+		}
+
+		components[i] = current
 	}
 
 	return int64(len(componentsDB)), components, nil

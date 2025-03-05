@@ -13,16 +13,48 @@ export interface Program {
     id: number;
     name: string;
     description: string;
-    spec: any;
-    properties: any;
+    spec: ProgramSpec;
+    properties: ProgramProperties;
+}
+
+export interface ProgramSpec {
+    Name: string;
+    Type: number;
+    AttachType: number;
+    AttachTo: string;
+    SectionName: string;
+    Flags: number;
+    License: string;
+    KernelVersion: number;
+}
+
+export interface ProgramProperties {
+    CGroupPath: string;
+    PinPath: string;
+    LinkPinPath: string;
+    Tc: any;
 }
 
 export interface Map {
     id: number;
     name: string;
     description: string;
-    spec: any;
-    properties: any;
+    spec: MapSpec;
+    properties: MapProperties;
+}
+
+export interface MapSpec {
+    Name: string;
+    Type: number;
+    KeySize: number;
+    ValueSize: number;
+    MaxEntries: number;
+    Flags: number;
+    Pinning: number;
+}
+
+export interface MapProperties {
+    PinPath: string;
 }
 
 export interface ComponentsData {
