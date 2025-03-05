@@ -1,6 +1,7 @@
 {
     "id": 1,
     "name": "测试组件",
+    "cluster_id": 1,
     "programs": [
         {
             "id": 1,

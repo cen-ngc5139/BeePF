@@ -49,7 +49,8 @@ func (s *Store) Create(component *models.Component) (*models.Component, error) {
 	return component, database.DB.Transaction(func(tx *gorm.DB) error {
 		// 创建组件
 		componentDB := &models.ComponentDB{
-			Name: component.Name,
+			Name:      component.Name,
+			ClusterID: uint64(component.ClusterId),
 		}
 
 		if err := tx.Create(componentDB).Error; err != nil {

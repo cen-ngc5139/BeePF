@@ -18,6 +18,8 @@ type ComponentDB struct {
 	CreatedTime    time.Time `gorm:"column:created_time;autoCreateTime" json:"created_time"`
 	LastUpdateTime time.Time `gorm:"column:last_update_time;autoUpdateTime" json:"last_update_time"`
 
+	ClusterID uint64 `gorm:"column:cluster_id" json:"cluster_id"`
+
 	// 关联关系
 	Programs []ProgramDB `gorm:"foreignKey:ComponentID" json:"programs"`
 	Maps     []MapDB     `gorm:"foreignKey:ComponentID" json:"maps"`
@@ -182,8 +184,9 @@ func (j *JSONMapProperties) Scan(value interface{}) error {
 // ToComponent 将数据库模型转换为业务模型
 func (c *ComponentDB) ToComponent() *Component {
 	component := &Component{
-		Id:   int(c.ID),
-		Name: c.Name,
+		Id:        int(c.ID),
+		Name:      c.Name,
+		ClusterId: int64(c.ClusterID),
 	}
 
 	// 转换 Programs
