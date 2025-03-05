@@ -3,6 +3,8 @@ module github.com/cen-ngc5139/BeePF/server
 go 1.22.4
 
 require (
+	github.com/cen-ngc5139/BeePF v0.0.1-rc9
+	github.com/cilium/ebpf v0.17.3
 	github.com/gin-contrib/pprof v1.5.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/pkg/errors v0.9.1
@@ -38,7 +40,7 @@ require (
 	golang.org/x/arch v0.12.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/protobuf v1.36.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

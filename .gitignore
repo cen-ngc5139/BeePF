@@ -26,3 +26,5 @@ go.work.sum
 
 .vscode
 .idea
+
+node_modules
