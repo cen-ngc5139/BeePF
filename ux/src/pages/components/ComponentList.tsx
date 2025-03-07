@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
     Card,
     Table,
@@ -22,6 +22,11 @@ interface ComponentWithCluster extends Component {
     clusterName?: string;
 }
 
+// 创建集群缓存映射
+interface ClusterCache {
+    [key: number]: string;
+}
+
 const ComponentList = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
@@ -32,22 +37,46 @@ const ComponentList = () => {
     const [components, setComponents] = useState<ComponentWithCluster[]>([]);
     const [total, setTotal] = useState(0);
     const [clusters, setClusters] = useState<Cluster[]>([]);
+    const [clusterCache, setClusterCache] = useState<ClusterCache>({});
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [clustersLoaded, setClustersLoaded] = useState(false);
 
-    // 加载集群列表
-    const loadClusters = async () => {
+    // 加载集群列表并创建缓存
+    const loadClusters = useCallback(async () => {
         try {
+            setLoading(true);
             const clusterList = await clusterService.getClustersByParams();
             setClusters(clusterList);
+
+            // 创建集群ID到名称的映射缓存
+            const cache: ClusterCache = {};
+            clusterList.forEach(cluster => {
+                if (cluster.id) {
+                    cache[cluster.id] = cluster.name;
+                }
+            });
+            setClusterCache(cache);
+            setClustersLoaded(true);
         } catch (error) {
             console.error('加载集群列表失败:', error);
             message.error('加载集群列表失败');
+        } finally {
+            setLoading(false);
         }
-    };
+    }, []);
+
+    // 从缓存中获取集群名称
+    const getClusterName = useCallback((clusterId: number): string => {
+        return clusterCache[clusterId] || '未知集群';
+    }, [clusterCache]);
 
     // 加载组件列表
-    const loadData = async (page = currentPage, size = pageSize) => {
+    const loadData = useCallback(async (page = currentPage, size = pageSize) => {
+        if (!clustersLoaded) {
+            return; // 等待集群数据加载完成
+        }
+
         setLoading(true);
         try {
             const params: any = {
@@ -65,32 +94,11 @@ const ComponentList = () => {
 
             const result = await componentService.getComponentList(params);
 
-            // 获取组件列表后，为每个组件添加集群名称
-            const componentsWithCluster = await Promise.all(
-                result.components.map(async (component) => {
-                    let clusterName = '未知集群';
-
-                    // 从已加载的集群列表中查找匹配的集群
-                    const matchedCluster = clusters.find(cluster => cluster.id === component.cluster_id);
-
-                    if (matchedCluster) {
-                        clusterName = matchedCluster.name;
-                    } else if (component.cluster_id) {
-                        // 如果在已加载的集群列表中找不到，则单独请求该集群信息
-                        try {
-                            const clusterInfo = await clusterService.getCluster(component.cluster_id);
-                            clusterName = clusterInfo.name;
-                        } catch (error) {
-                            console.error(`获取集群 ${component.cluster_id} 信息失败:`, error);
-                        }
-                    }
-
-                    return {
-                        ...component,
-                        clusterName
-                    };
-                })
-            );
+            // 使用缓存的集群数据为组件添加集群名称
+            const componentsWithCluster = result.components.map(component => ({
+                ...component,
+                clusterName: component.cluster_id ? getClusterName(component.cluster_id) : '未知集群'
+            }));
 
             setComponents(componentsWithCluster);
             setTotal(result.total);
@@ -102,16 +110,26 @@ const ComponentList = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedCluster, searchKeyword, clustersLoaded, getClusterName]);
 
-    // 初始加载
+    // 初始加载集群数据
     useEffect(() => {
         loadClusters();
-    }, []);
+    }, [loadClusters]);
 
+    // 当集群数据加载完成后，加载组件列表
     useEffect(() => {
-        loadData();
-    }, [selectedCluster, clusters]);
+        if (clustersLoaded) {
+            loadData(1);
+        }
+    }, [clustersLoaded, loadData]);
+
+    // 当选择的集群或搜索关键词变化时，重新加载组件列表
+    useEffect(() => {
+        if (clustersLoaded && (selectedCluster !== undefined || searchKeyword)) {
+            loadData(1);
+        }
+    }, [selectedCluster, searchKeyword, clustersLoaded, loadData]);
 
     const handleSearch = () => {
         loadData(1);
@@ -241,7 +259,7 @@ const ComponentList = () => {
                         pageSize: pageSize,
                         total: total,
                         onChange: (page, pageSize) => {
-                            loadData(page, pageSize);
+                            loadData(page, pageSize || 10);
                         },
                         showSizeChanger: true,
                         showTotal: (total) => `共 ${total} 条记录`,

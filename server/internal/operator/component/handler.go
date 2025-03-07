@@ -31,7 +31,8 @@ func (o *Operator) Get(id uint64) (component *models.Component, err error) {
 }
 
 func (o *Operator) List() (total int64, components []*models.Component, err error) {
-	total, components, err = o.ComponentStore.List()
+	// 传递分页参数到存储层
+	total, components, err = o.ComponentStore.List(o.QueryParma)
 	if err != nil {
 		err = errors.Wrapf(err, "获取组件列表失败")
 		return

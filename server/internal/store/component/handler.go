@@ -3,6 +3,7 @@ package component
 import (
 	"github.com/cen-ngc5139/BeePF/server/internal/database"
 	"github.com/cen-ngc5139/BeePF/server/models"
+	"github.com/cen-ngc5139/BeePF/server/pkg/utils"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
@@ -27,10 +28,30 @@ func (s *Store) Get(id uint64) (*models.Component, error) {
 }
 
 // ListComponents 获取组件列表
-func (s *Store) List() (total int64, components []*models.Component, err error) {
+func (s *Store) List(query *utils.Query) (total int64, components []*models.Component, err error) {
 	var componentsDB []models.ComponentDB
-	result := database.DB.Where("deleted = 0").Find(&componentsDB)
 
+	// 计算总数
+	result := database.DB.Model(&models.ComponentDB{}).Where("deleted = 0").Count(&total)
+	if result.Error != nil {
+		err = result.Error
+		return
+	}
+
+	// 构建查询
+	db := database.DB.Where("deleted = 0")
+
+	// 应用分页
+	if query != nil && query.PageSize > 0 {
+		offset := (query.PageNum - 1) * query.PageSize
+		if offset < 0 {
+			offset = 0
+		}
+		db = db.Offset(offset).Limit(query.PageSize)
+	}
+
+	// 执行查询
+	result = db.Find(&componentsDB)
 	if result.Error != nil {
 		err = result.Error
 		return
@@ -48,7 +69,7 @@ func (s *Store) List() (total int64, components []*models.Component, err error) 
 		components[i] = current
 	}
 
-	return int64(len(componentsDB)), components, nil
+	return total, components, nil
 }
 
 // CreateComponent 创建组件
