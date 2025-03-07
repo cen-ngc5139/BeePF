@@ -12,7 +12,7 @@ import {
     Spin,
     Tag
 } from 'antd'
-import { SearchOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons'
+import { SearchOutlined, MoreOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons'
 import type { TableProps } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import componentService, { Component } from '../../services/componentService'
@@ -218,9 +218,16 @@ const ComponentList = () => {
                 <Button
                     type="primary"
                     icon={<PlusOutlined />}
-                    onClick={() => navigate('/component/create')}
+                    onClick={() => navigate('/components/create')}
                 >
                     新建组件
+                </Button>
+                <Button
+                    type="primary"
+                    icon={<UploadOutlined />}
+                    onClick={() => navigate('/components/upload')}
+                >
+                    上传组件
                 </Button>
             </Space>
 

@@ -13,6 +13,7 @@ const breadcrumbNameMap: Record<string, string> = {
     '/components': '组件管理',
     '/components/list': '组件列表',
     '/components/create': '新建组件',
+    '/components/upload': '上传组件',
     '/component': '组件详情',
     '/observability': '可观测',
     '/workflow': '工作流',

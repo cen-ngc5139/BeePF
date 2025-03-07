@@ -81,8 +81,8 @@ func (s *Store) Create(component *models.Component) (*models.Component, error) {
 			programSpecDB := &models.ProgramSpecDB{
 				ProgramID:     programDB.ID,
 				Name:          program.Spec.Name,
-				Type:          program.Spec.Type.String(),
-				AttachType:    program.Spec.AttachType.String(),
+				Type:          program.Spec.Type,
+				AttachType:    program.Spec.AttachType,
 				AttachTo:      program.Spec.AttachTo,
 				SectionName:   program.Spec.SectionName,
 				Flags:         program.Spec.Flags,
@@ -121,7 +121,7 @@ func (s *Store) Create(component *models.Component) (*models.Component, error) {
 			mapSpecDB := &models.MapSpecDB{
 				MapID:      mapDB.ID,
 				Name:       m.Spec.Name,
-				Type:       m.Spec.Type.String(),
+				Type:       m.Spec.Type,
 				KeySize:    m.Spec.KeySize,
 				ValueSize:  m.Spec.ValueSize,
 				MaxEntries: m.Spec.MaxEntries,

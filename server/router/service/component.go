@@ -1,7 +1,9 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
 
 	"github.com/cen-ngc5139/BeePF/server/internal/operator/component"
 	"github.com/cen-ngc5139/BeePF/server/models"
@@ -61,5 +63,56 @@ func (ct *Component) List() gin.HandlerFunc {
 
 		data := map[string]interface{}{"list": components, "total": total}
 		utils.HandleResult(c, &data)
+	}
+}
+
+func (ct *Component) Upload() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 获取上传的文件
+		fileHeader, err := c.FormFile("binary")
+		if err != nil {
+			utils.ResponseErr(c, err)
+			return
+		}
+
+		// 从表单中获取 JSON 数据
+		jsonData := c.PostForm("data")
+		if jsonData == "" {
+			utils.ResponseErr(c, errors.New("missing component data"))
+			return
+		}
+
+		// 解析 JSON 数据
+		basic := &models.Component{}
+		if err := json.Unmarshal([]byte(jsonData), basic); err != nil {
+			utils.ResponseErr(c, err)
+			return
+		}
+
+		// 打开文件
+		file, err := fileHeader.Open()
+		if err != nil {
+			utils.ResponseErr(c, err)
+			return
+		}
+		defer file.Close()
+
+		// 读取文件内容到字节数组
+		fileBytes, err := io.ReadAll(file)
+		if err != nil {
+			utils.ResponseErr(c, err)
+			return
+		}
+
+		// 创建操作对象并设置二进制数据
+		operator := component.NewOperator().WithComponent(basic)
+		operator.Binary = fileBytes
+
+		// 处理上传的二进制文件
+		if err := operator.UploadBinary(); utils.HandleError(c, err) {
+			return
+		}
+
+		utils.HandleResult(c, nil)
 	}
 }

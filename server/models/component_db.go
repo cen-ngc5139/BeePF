@@ -53,19 +53,19 @@ func (ProgramDB) TableName() string {
 
 // ProgramSpecDB 程序规格数据库模型
 type ProgramSpecDB struct {
-	ID             uint64    `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	ProgramID      uint64    `gorm:"column:program_id;uniqueIndex" json:"program_id"`
-	Name           string    `gorm:"column:name" json:"name"`
-	Type           string    `gorm:"column:type" json:"type"`
-	AttachType     string    `gorm:"column:attach_type" json:"attach_type"`
-	AttachTo       string    `gorm:"column:attach_to" json:"attach_to"`
-	SectionName    string    `gorm:"column:section_name" json:"section_name"`
-	Flags          uint32    `gorm:"column:flags" json:"flags"`
-	License        string    `gorm:"column:license" json:"license"`
-	KernelVersion  uint32    `gorm:"column:kernel_version" json:"kernel_version"`
-	Deleted        uint8     `gorm:"column:deleted;default:0" json:"deleted"`
-	CreatedTime    time.Time `gorm:"column:created_time;autoCreateTime" json:"created_time"`
-	LastUpdateTime time.Time `gorm:"column:last_update_time;autoUpdateTime" json:"last_update_time"`
+	ID             uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	ProgramID      uint64           `gorm:"column:program_id;uniqueIndex" json:"program_id"`
+	Name           string           `gorm:"column:name" json:"name"`
+	Type           ebpf.ProgramType `gorm:"column:type" json:"type"`
+	AttachType     ebpf.AttachType  `gorm:"column:attach_type" json:"attach_type"`
+	AttachTo       string           `gorm:"column:attach_to" json:"attach_to"`
+	SectionName    string           `gorm:"column:section_name" json:"section_name"`
+	Flags          uint32           `gorm:"column:flags" json:"flags"`
+	License        string           `gorm:"column:license" json:"license"`
+	KernelVersion  uint32           `gorm:"column:kernel_version" json:"kernel_version"`
+	Deleted        uint8            `gorm:"column:deleted;default:0" json:"deleted"`
+	CreatedTime    time.Time        `gorm:"column:created_time;autoCreateTime" json:"created_time"`
+	LastUpdateTime time.Time        `gorm:"column:last_update_time;autoUpdateTime" json:"last_update_time"`
 }
 
 // TableName 指定表名
@@ -111,18 +111,18 @@ func (MapDB) TableName() string {
 
 // MapSpecDB Map规格数据库模型
 type MapSpecDB struct {
-	ID             uint64    `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	MapID          uint64    `gorm:"column:map_id;uniqueIndex" json:"map_id"`
-	Name           string    `gorm:"column:name" json:"name"`
-	Type           string    `gorm:"column:type" json:"type"`
-	KeySize        uint32    `gorm:"column:key_size" json:"key_size"`
-	ValueSize      uint32    `gorm:"column:value_size" json:"value_size"`
-	MaxEntries     uint32    `gorm:"column:max_entries" json:"max_entries"`
-	Flags          uint32    `gorm:"column:flags" json:"flags"`
-	Pinning        string    `gorm:"column:pinning" json:"pinning"`
-	Deleted        uint8     `gorm:"column:deleted;default:0" json:"deleted"`
-	CreatedTime    time.Time `gorm:"column:created_time;autoCreateTime" json:"created_time"`
-	LastUpdateTime time.Time `gorm:"column:last_update_time;autoUpdateTime" json:"last_update_time"`
+	ID             uint64       `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	MapID          uint64       `gorm:"column:map_id;uniqueIndex" json:"map_id"`
+	Name           string       `gorm:"column:name" json:"name"`
+	Type           ebpf.MapType `gorm:"column:type" json:"type"`
+	KeySize        uint32       `gorm:"column:key_size" json:"key_size"`
+	ValueSize      uint32       `gorm:"column:value_size" json:"value_size"`
+	MaxEntries     uint32       `gorm:"column:max_entries" json:"max_entries"`
+	Flags          uint32       `gorm:"column:flags" json:"flags"`
+	Pinning        string       `gorm:"column:pinning" json:"pinning"`
+	Deleted        uint8        `gorm:"column:deleted;default:0" json:"deleted"`
+	CreatedTime    time.Time    `gorm:"column:created_time;autoCreateTime" json:"created_time"`
+	LastUpdateTime time.Time    `gorm:"column:last_update_time;autoUpdateTime" json:"last_update_time"`
 }
 
 // TableName 指定表名
@@ -223,8 +223,8 @@ func (p *ProgramDB) ToProgram() *Program {
 func (ps *ProgramSpecDB) ToProgramSpec() *ProgramSpec {
 	return &ProgramSpec{
 		Name:          ps.Name,
-		Type:          ebpf.ProgramType(0), // 需要转换字符串到枚举
-		AttachType:    ebpf.AttachType(0),  // 需要转换字符串到枚举
+		Type:          ps.Type,
+		AttachType:    ps.AttachType,
 		AttachTo:      ps.AttachTo,
 		SectionName:   ps.SectionName,
 		Flags:         ps.Flags,
@@ -248,7 +248,7 @@ func (m *MapDB) ToMap() *Map {
 func (ms *MapSpecDB) ToMapSpec() *MapSpec {
 	return &MapSpec{
 		Name:       ms.Name,
-		Type:       ebpf.MapType(0), // 需要转换字符串到枚举
+		Type:       ms.Type,
 		KeySize:    ms.KeySize,
 		ValueSize:  ms.ValueSize,
 		MaxEntries: ms.MaxEntries,

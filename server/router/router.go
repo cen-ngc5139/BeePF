@@ -28,6 +28,7 @@ func (s *Server) initRouter() *gin.Engine {
 		v1.GET("/component", componentService.List())
 		v1.GET("/component/:componentId", componentService.Get())
 		v1.POST("/component", componentService.Create())
+		v1.POST("/component/upload", componentService.Upload())
 		// v1.PUT("/component/:componentId", componentService.Update())
 		// v1.DELETE("/component/:componentId", componentService.Delete())
 	}

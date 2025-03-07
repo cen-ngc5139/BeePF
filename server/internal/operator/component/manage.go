@@ -10,6 +10,7 @@ import (
 type Operator struct {
 	QueryParma     *utils.Query
 	Component      *models.Component
+	Binary         []byte
 	ComponentStore *component.Store
 	User           string
 }
