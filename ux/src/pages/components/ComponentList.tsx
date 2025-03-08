@@ -305,13 +305,6 @@ const ComponentList = () => {
                 </Button>
                 <Button
                     type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => navigate('/components/create')}
-                >
-                    新建组件
-                </Button>
-                <Button
-                    type="primary"
                     icon={<UploadOutlined />}
                     onClick={() => navigate('/components/upload')}
                 >
