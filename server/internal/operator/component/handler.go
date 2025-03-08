@@ -40,3 +40,18 @@ func (o *Operator) List() (total int64, components []*models.Component, err erro
 
 	return
 }
+
+func (o *Operator) Delete() (err error) {
+	if o.Component == nil {
+		err = errors.New("组件不能为空")
+		return
+	}
+
+	err = o.ComponentStore.Delete(o.Component)
+	if err != nil {
+		err = errors.Wrapf(err, "删除组件 %d 失败", o.Component.Id)
+		return
+	}
+
+	return
+}

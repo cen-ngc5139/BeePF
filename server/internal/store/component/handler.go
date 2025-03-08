@@ -175,3 +175,78 @@ func (s *Store) Create(component *models.Component) (*models.Component, error) {
 			First(componentDB, componentDB.ID).Error
 	})
 }
+
+// DeleteComponent 删除组件
+func (s *Store) Delete(component *models.Component) (err error) {
+	// 使用事务确保操作的原子性
+	return database.DB.Transaction(func(tx *gorm.DB) error {
+		// 1. 获取组件关联的所有程序
+		var programIDs []uint64
+		if err := tx.Model(&models.ProgramDB{}).
+			Where("component_id = ? AND deleted = 0", component.Id).
+			Pluck("id", &programIDs).Error; err != nil {
+			return err
+		}
+
+		// 2. 获取组件关联的所有映射
+		var mapIDs []uint64
+		if err := tx.Model(&models.MapDB{}).
+			Where("component_id = ? AND deleted = 0", component.Id).
+			Pluck("id", &mapIDs).Error; err != nil {
+			return err
+		}
+
+		// 3. 标记程序为已删除
+		if len(programIDs) > 0 {
+			// 3.1 标记程序为已删除
+			if err := tx.Model(&models.ProgramDB{}).
+				Where("id IN ?", programIDs).
+				Update("deleted", 1).Error; err != nil {
+				return err
+			}
+
+			// 3.2 标记程序规格为已删除
+			if err := tx.Model(&models.ProgramSpecDB{}).
+				Where("program_id IN ?", programIDs).
+				Update("deleted", 1).Error; err != nil {
+				return err
+			}
+
+			// 3.3 标记程序属性为已删除
+			if err := tx.Model(&models.ProgramPropertiesDB{}).
+				Where("program_id IN ?", programIDs).
+				Update("deleted", 1).Error; err != nil {
+				return err
+			}
+		}
+
+		// 4. 标记映射为已删除
+		if len(mapIDs) > 0 {
+			// 4.1 标记映射为已删除
+			if err := tx.Model(&models.MapDB{}).
+				Where("id IN ?", mapIDs).
+				Update("deleted", 1).Error; err != nil {
+				return err
+			}
+
+			// 4.2 标记映射规格为已删除
+			if err := tx.Model(&models.MapSpecDB{}).
+				Where("map_id IN ?", mapIDs).
+				Update("deleted", 1).Error; err != nil {
+				return err
+			}
+
+			// 4.3 标记映射属性为已删除
+			if err := tx.Model(&models.MapPropertiesDB{}).
+				Where("map_id IN ?", mapIDs).
+				Update("deleted", 1).Error; err != nil {
+				return err
+			}
+		}
+
+		// 5. 标记组件为已删除
+		return tx.Model(&models.ComponentDB{}).
+			Where("id = ?", component.Id).
+			Update("deleted", 1).Error
+	})
+}

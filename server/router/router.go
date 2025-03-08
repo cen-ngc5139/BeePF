@@ -30,7 +30,7 @@ func (s *Server) initRouter() *gin.Engine {
 		v1.POST("/component", componentService.Create())
 		v1.POST("/component/upload", componentService.Upload())
 		// v1.PUT("/component/:componentId", componentService.Update())
-		// v1.DELETE("/component/:componentId", componentService.Delete())
+		v1.DELETE("/component/:componentId", componentService.Delete())
 	}
 
 	return s.router

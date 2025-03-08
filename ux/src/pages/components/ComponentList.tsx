@@ -10,9 +10,10 @@ import {
     Modal,
     message,
     Spin,
-    Tag
+    Tag,
+    Form
 } from 'antd'
-import { SearchOutlined, MoreOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons'
+import { SearchOutlined, MoreOutlined, PlusOutlined, UploadOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import type { TableProps } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import componentService, { Component } from '../../services/componentService'
@@ -41,6 +42,12 @@ const ComponentList = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [clustersLoaded, setClustersLoaded] = useState(false);
+
+    // 删除相关状态
+    const [deleteForm] = Form.useForm();
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [componentToDelete, setComponentToDelete] = useState<ComponentWithCluster | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     // 加载集群列表并创建缓存
     const loadClusters = useCallback(async () => {
@@ -136,15 +143,78 @@ const ComponentList = () => {
     };
 
     const handleDelete = (record: ComponentWithCluster) => {
-        Modal.confirm({
-            title: '确认删除',
-            content: `确定要删除组件 ${record.name} 吗？`,
-            onOk: () => {
-                // 实现删除逻辑
-                message.success('删除成功');
-                loadData();
-            },
-        });
+        // 调试日志
+        console.log('点击删除按钮，组件ID:', record.id, '组件名称:', record.name);
+
+        // 设置要删除的组件并显示确认对话框
+        setComponentToDelete(record);
+        setDeleteModalVisible(true);
+        deleteForm.resetFields();
+    };
+
+    // 确认删除
+    const confirmDelete = async () => {
+        try {
+            await deleteForm.validateFields();
+            const values = deleteForm.getFieldsValue();
+
+            if (!componentToDelete) {
+                message.error('未选择要删除的组件');
+                return;
+            }
+
+            if (values.confirmName !== componentToDelete.name) {
+                message.error('输入的组件名称不匹配');
+                return;
+            }
+
+            setDeleteLoading(true);
+
+            try {
+                await componentService.deleteComponent(componentToDelete.id);
+                message.success(`删除组件 ${componentToDelete.name} 成功`);
+                setDeleteModalVisible(false);
+                // 重新加载数据
+                loadData(currentPage);
+            } catch (error: any) {
+                console.error('删除组件失败:', error);
+                message.error(`删除失败: ${error.message || '未知错误'}`);
+            } finally {
+                setDeleteLoading(false);
+            }
+        } catch (error) {
+            // 表单验证失败
+            console.log('表单验证失败:', error);
+        }
+    };
+
+    // 取消删除
+    const cancelDelete = () => {
+        setDeleteModalVisible(false);
+        setComponentToDelete(null);
+    };
+
+    // 直接删除方法，用于测试
+    const handleDirectDelete = (record: ComponentWithCluster) => {
+        console.log('直接删除，组件ID:', record.id, '组件名称:', record.name);
+        setLoading(true);
+
+        componentService.deleteComponent(record.id)
+            .then(() => {
+                console.log('删除API调用成功');
+                message.success(`删除组件 ${record.name} 成功`);
+                loadData(currentPage);
+            })
+            .catch((error) => {
+                console.error('删除组件失败:', error);
+                if (error.response) {
+                    console.error('错误响应:', error.response);
+                }
+                message.error(`删除失败: ${error.message || '未知错误'}`);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     };
 
     const columns: TableProps<ComponentWithCluster>['columns'] = [
@@ -266,6 +336,44 @@ const ComponentList = () => {
                     }}
                 />
             </Spin>
+
+            {/* 删除确认弹窗 */}
+            <Modal
+                title={
+                    <div>
+                        <ExclamationCircleOutlined style={{ color: '#ff4d4f', marginRight: 8 }} />
+                        确认删除组件
+                    </div>
+                }
+                open={deleteModalVisible}
+                onOk={confirmDelete}
+                onCancel={cancelDelete}
+                confirmLoading={deleteLoading}
+                okText="删除"
+                cancelText="取消"
+                okButtonProps={{ danger: true }}
+            >
+                <p>删除操作不可恢复，请谨慎操作！</p>
+                <p>请输入组件名称 <strong>{componentToDelete?.name}</strong> 以确认删除：</p>
+                <Form form={deleteForm}>
+                    <Form.Item
+                        name="confirmName"
+                        rules={[
+                            { required: true, message: '请输入组件名称' },
+                            {
+                                validator: (_, value) => {
+                                    if (value && componentToDelete && value !== componentToDelete.name) {
+                                        return Promise.reject(new Error('组件名称不匹配'));
+                                    }
+                                    return Promise.resolve();
+                                }
+                            }
+                        ]}
+                    >
+                        <Input placeholder="请输入组件名称" />
+                    </Form.Item>
+                </Form>
+            </Modal>
         </Card>
     )
 }

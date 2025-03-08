@@ -147,8 +147,51 @@ export const createComponent = async (componentData: Component): Promise<any> =>
     }
 };
 
+/**
+ * 删除组件
+ */
+export const deleteComponent = async (componentId: number): Promise<boolean> => {
+    try {
+        // 调试日志
+        console.log(`删除组件请求，ID: ${componentId}`);
+        console.log(`完整API路径: /component/${componentId}`);
+
+        // 确保componentId是数字
+        if (typeof componentId !== 'number' || isNaN(componentId)) {
+            throw new Error(`无效的组件ID: ${componentId}`);
+        }
+
+        // 确保使用正确的API路径
+        const apiPath = `/component/${componentId}`;
+        console.log(`发送DELETE请求到: ${apiPath}`);
+
+        // 使用更详细的错误处理
+        try {
+            const response = await api.delete(apiPath) as ApiResponse<any>;
+            console.log('删除组件响应数据:', response);
+
+            if (response.success) {
+                return true;
+            } else {
+                throw new Error(response.errorMsg || '删除组件失败');
+            }
+        } catch (axiosError: any) {
+            console.error('Axios错误:', axiosError);
+            if (axiosError.response) {
+                console.error('响应状态:', axiosError.response.status);
+                console.error('响应数据:', axiosError.response.data);
+            }
+            throw axiosError;
+        }
+    } catch (error) {
+        console.error('删除组件请求错误:', error);
+        throw error;
+    }
+};
+
 export default {
     getComponentList,
     getComponent,
-    createComponent
+    createComponent,
+    deleteComponent
 }; 

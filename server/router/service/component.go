@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strconv"
 
 	"github.com/cen-ngc5139/BeePF/server/internal/operator/component"
 	"github.com/cen-ngc5139/BeePF/server/models"
@@ -110,6 +111,33 @@ func (ct *Component) Upload() gin.HandlerFunc {
 
 		// 处理上传的二进制文件
 		if err := operator.UploadBinary(); utils.HandleError(c, err) {
+			return
+		}
+
+		utils.HandleResult(c, nil)
+	}
+}
+
+// Delete 删除组件
+func (ct *Component) Delete() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 获取组件ID
+		componentId := c.Param("componentId")
+		id, err := strconv.ParseUint(componentId, 10, 64)
+		if utils.HandleError(c, err) {
+			return
+		}
+
+		// 获取组件信息
+		operator := component.NewOperator()
+		componentObj, err := operator.Get(id)
+		if utils.HandleError(c, err) {
+			return
+		}
+
+		// 删除组件及其关联的程序和映射
+		err = operator.WithComponent(componentObj).Delete()
+		if utils.HandleError(c, err) {
 			return
 		}
 
