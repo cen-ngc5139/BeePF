@@ -37,7 +37,12 @@ func (o *Operator) UploadBinary() (err error) {
 		os.MkdirAll(dir, 0755)
 	}
 
-	os.WriteFile(dir+"/"+fileName, o.Binary, 0644)
+	binaryPath := dir + "/" + fileName
+	if err := os.WriteFile(binaryPath, o.Binary, 0644); err != nil {
+		return errors.Wrap(err, "写入二进制文件失败")
+	}
+
+	o.Component.BinaryPath = binaryPath
 
 	// 初始化日志
 	logger, err := zap.NewDevelopment()
@@ -48,7 +53,7 @@ func (o *Operator) UploadBinary() (err error) {
 	defer logger.Sync()
 
 	config := &loader.Config{
-		ObjectPath:  dir + "/" + fileName,
+		ObjectPath:  binaryPath,
 		Logger:      logger,
 		StructName:  "sched_latency_t",
 		PollTimeout: 100 * time.Millisecond,
@@ -111,10 +116,11 @@ func (o *Operator) convertSpecToComponent(spec *ebpf.CollectionSpec) (*models.Co
 
 	// 创建组件
 	component := &models.Component{
-		Name:      o.Component.Name,      // 使用第一个程序的名称作为组件名称
-		ClusterId: o.Component.ClusterId, // 默认集群ID，可以根据需要修改
-		Programs:  make([]models.Program, 0),
-		Maps:      make([]models.Map, 0),
+		Name:       o.Component.Name,      // 使用第一个程序的名称作为组件名称
+		ClusterId:  o.Component.ClusterId, // 默认集群ID，可以根据需要修改
+		BinaryPath: o.Component.BinaryPath,
+		Programs:   make([]models.Program, 0),
+		Maps:       make([]models.Map, 0),
 	}
 
 	// 处理程序

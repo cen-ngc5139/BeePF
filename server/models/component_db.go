@@ -13,6 +13,7 @@ import (
 type ComponentDB struct {
 	ID             uint64    `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	Name           string    `gorm:"column:name;uniqueIndex" json:"name"`
+	BinaryPath     string    `gorm:"column:binary_path" json:"binary_path"`
 	Deleted        uint8     `gorm:"column:deleted;default:0" json:"deleted"`
 	Creator        string    `gorm:"column:creator" json:"creator"`
 	CreatedTime    time.Time `gorm:"column:created_time;autoCreateTime" json:"created_time"`

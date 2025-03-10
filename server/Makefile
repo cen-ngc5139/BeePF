@@ -7,3 +7,6 @@ build:
 
 dlv: build
 	cd cmd ; dlv --headless --listen=:2345 --api-version=2 exec ./server -- --config ../config.json
+
+run: build
+	cd cmd ; ./server --config ../config.json

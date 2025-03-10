@@ -28,6 +28,7 @@ create table if not exists beepf.component
     id               bigint unsigned AUTO_INCREMENT NOT NULL PRIMARY KEY comment 'ID',
     name             varchar(100)                   NOT NULL comment '组件名称',
     cluster_id       bigint unsigned                NOT NULL comment '所属集群ID',
+    binary_path      varchar(500)                   NOT NULL comment '组件二进制文件路径',
     deleted          tinyint                        NOT NULL DEFAULT '0' comment '是否删除',
     creator          varchar(50)                    NOT NULL DEFAULT '' comment '创建用户',
     created_time     datetime                       NOT NULL DEFAULT CURRENT_TIMESTAMP comment '创建时间',

@@ -7,11 +7,12 @@ import (
 )
 
 type Component struct {
-	Id        int       `json:"id"`
-	Name      string    `json:"name"`
-	ClusterId int64     `json:"cluster_id"`
-	Programs  []Program `json:"programs"`
-	Maps      []Map     `json:"maps"`
+	Id         int       `json:"id"`
+	Name       string    `json:"name"`
+	ClusterId  int64     `json:"cluster_id"`
+	BinaryPath string    `json:"binary_path"`
+	Programs   []Program `json:"programs"`
+	Maps       []Map     `json:"maps"`
 }
 
 type Program struct {

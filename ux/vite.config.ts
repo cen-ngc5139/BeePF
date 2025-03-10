@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://192.168.142.132:8080', // 后端服务地址
+        target: 'http://192.168.200.200:8080', // 后端服务地址
         changeOrigin: true,
         secure: false,
       }
