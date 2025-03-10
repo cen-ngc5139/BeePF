@@ -8,6 +8,7 @@ import (
 var (
 	clusterService   = &service.Cluster{}
 	componentService = &service.Component{}
+	taskService      = &service.Task{}
 )
 
 func (s *Server) initRouter() *gin.Engine {
@@ -31,6 +32,13 @@ func (s *Server) initRouter() *gin.Engine {
 		v1.POST("/component/upload", componentService.Upload())
 		// v1.PUT("/component/:componentId", componentService.Update())
 		v1.DELETE("/component/:componentId", componentService.Delete())
+
+		// 任务管理相关接口
+		v1.GET("/task", taskService.List())
+		v1.GET("/task/:taskId", taskService.Get())
+		v1.POST("/task/component/:componentId", taskService.Create())
+		v1.GET("/task/running", taskService.Running())
+		v1.POST("/task/:taskId/stop", taskService.Stop())
 	}
 
 	return s.router

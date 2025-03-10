@@ -185,9 +185,10 @@ func (j *JSONMapProperties) Scan(value interface{}) error {
 // ToComponent 将数据库模型转换为业务模型
 func (c *ComponentDB) ToComponent() *Component {
 	component := &Component{
-		Id:        int(c.ID),
-		Name:      c.Name,
-		ClusterId: int64(c.ClusterID),
+		Id:         int(c.ID),
+		Name:       c.Name,
+		ClusterId:  int64(c.ClusterID),
+		BinaryPath: c.BinaryPath,
 	}
 
 	// 转换 Programs
