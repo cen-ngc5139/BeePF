@@ -3,6 +3,7 @@ github.com/bytedance/sonic v1.12.6/go.mod h1:B8Gt/XvtZ3Fqj+iSKMypzymZxw/FVwgIGKz
 github.com/bytedance/sonic/loader v0.1.1/go.mod h1:ncP89zfokxS5LZrJxl5z0UJcsk4M4yY2JpfqGeCtNLU=
 github.com/bytedance/sonic/loader v0.2.1 h1:1GgorWTqf12TA8mma4DDSbaQigE2wOgQo7iCjjJv3+E=
 github.com/bytedance/sonic/loader v0.2.1/go.mod h1:ncP89zfokxS5LZrJxl5z0UJcsk4M4yY2JpfqGeCtNLU=
+github.com/cen-ngc5139/BeePF v0.0.1-rc11/go.mod h1:w/uk3rK9Vjooo8WGC3kaEmt1y7oBg8j8tpaxVYpI2Os=
 github.com/cen-ngc5139/BeePF v0.0.1-rc9 h1:VFLM7id95cdx3RH8in0DRarim2qmktjppemMEiXjZyk=
 github.com/cen-ngc5139/BeePF v0.0.1-rc9/go.mod h1:w/uk3rK9Vjooo8WGC3kaEmt1y7oBg8j8tpaxVYpI2Os=
 github.com/cilium/ebpf v0.17.3 h1:FnP4r16PWYSE4ux6zN+//jMcW4nMVRvuTLVTvCjyyjg=

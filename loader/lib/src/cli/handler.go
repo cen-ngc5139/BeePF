@@ -259,7 +259,7 @@ func (s *SampleMapHandler) Setup(spec *ebpf.MapSpec, m *ebpf.Map) (*skeleton.Pro
 }
 
 func (s *SampleMapHandler) Close() {
-	if s.Poller != nil {
+	if s != nil && s.Poller != nil {
 		s.Poller.Close()
 	}
 }

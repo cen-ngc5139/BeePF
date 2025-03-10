@@ -285,14 +285,9 @@ func (p *SampleMapPoller) GetPollFunc() PollFunc {
 
 // Close 清理资源
 func (p *SampleMapPoller) Close() error {
-	if p.SampleConfig.ClearMap {
-		// 清理 map
-		var key []byte
-		iter := p.BpfMap.Iterate()
-		for iter.Next(&key, nil) {
-			if err := p.BpfMap.Delete(key); err != nil {
-				return fmt.Errorf("delete map entry error: %w", err)
-			}
+	if p.SampleConfig.ClearMap && p.BpfMap != nil {
+		if err := p.BpfMap.Close(); err != nil {
+			return fmt.Errorf("delete map error: %w", err)
 		}
 	}
 	return nil
