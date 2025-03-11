@@ -34,7 +34,6 @@ func main() {
 	config := &loader.Config{
 		ObjectPath:  "./binary/cgroup_skb_x86_bpfel.o",
 		Logger:      logger,
-		StructName:  "cgroup_skb_t",
 		PollTimeout: 100 * time.Millisecond,
 		Properties: meta.Properties{
 			Programs: map[string]*meta.Program{

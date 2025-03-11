@@ -50,7 +50,6 @@ type Config struct {
 	BTFPath     string
 	Logger      *zap.Logger
 	PollTimeout time.Duration
-	StructName  string
 	Properties  meta.Properties
 }
 
@@ -153,12 +152,14 @@ func (l *BPFLoader) GetMapHandlerByType(mapType ebpf.MapType) MapHandler {
 	case ebpf.PerfEventArray:
 		for _, handler := range l.MapHandlers {
 			if _, ok := handler.(*PerfEventMapHandler); ok {
+				handler.SetExportTypes(l.PreLoadSkeleton.Meta.ExportTypes)
 				return handler
 			}
 		}
 	case ebpf.RingBuf:
 		for _, handler := range l.MapHandlers {
 			if _, ok := handler.(*RingBufMapHandler); ok {
+				handler.SetExportTypes(l.PreLoadSkeleton.Meta.ExportTypes)
 				return handler
 			}
 		}
@@ -166,6 +167,7 @@ func (l *BPFLoader) GetMapHandlerByType(mapType ebpf.MapType) MapHandler {
 		// 对于其他类型，查找 SampleMapHandler
 		for _, handler := range l.MapHandlers {
 			if _, ok := handler.(*SampleMapHandler); ok {
+				handler.SetExportTypes(l.PreLoadSkeleton.Meta.ExportTypes)
 				return handler
 			}
 		}

@@ -121,7 +121,6 @@ func (o *Operator) RunComponentAsync(task *models.Task, component *models.Compon
 	config := &loader.Config{
 		ObjectPath:  component.BinaryPath, // 这里应该使用组件的实际二进制路径
 		Logger:      logger,
-		StructName:  "sched_latency_t",
 		PollTimeout: 100 * time.Millisecond,
 		Properties: meta.Properties{
 			Stats: &meta.Stats{

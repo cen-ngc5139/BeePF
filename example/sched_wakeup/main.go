@@ -26,7 +26,6 @@ func main() {
 	config := &loader.Config{
 		ObjectPath:  "./binary/shepherd_x86_bpfel.o",
 		Logger:      logger,
-		StructName:  "sched_latency_t",
 		PollTimeout: 100 * time.Millisecond,
 		Properties: meta.Properties{
 			Maps: map[string]*meta.Map{

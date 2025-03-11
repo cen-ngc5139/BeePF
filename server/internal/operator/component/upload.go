@@ -55,7 +55,6 @@ func (o *Operator) UploadBinary() (err error) {
 	config := &loader.Config{
 		ObjectPath:  binaryPath,
 		Logger:      logger,
-		StructName:  "sched_latency_t",
 		PollTimeout: 100 * time.Millisecond,
 		Properties: meta.Properties{
 			Maps: map[string]*meta.Map{

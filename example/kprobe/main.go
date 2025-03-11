@@ -27,7 +27,6 @@ func main() {
 	config := &loader.Config{
 		ObjectPath:  "./binary/kprobe_x86_bpfel.o",
 		Logger:      logger,
-		StructName:  "EventData",
 		PollTimeout: 100 * time.Millisecond,
 		Properties: meta.Properties{
 			Stats: &meta.Stats{

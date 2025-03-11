@@ -38,7 +38,6 @@ func main() {
 	config := &loader.Config{
 		ObjectPath:  "./binary/fentry_x86_bpfel.o",
 		Logger:      logger,
-		StructName:  "event",
 		PollTimeout: 100 * time.Millisecond,
 		Properties: meta.Properties{
 			Stats: &meta.Stats{

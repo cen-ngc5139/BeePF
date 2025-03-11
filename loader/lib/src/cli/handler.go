@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -24,6 +25,7 @@ type MapHandler interface {
 	SetBTFContainer(*container.BTFContainer)
 	Close()
 	SetEventHandler(meta.EventHandler)
+	SetExportTypes([]meta.ExportedTypesStructMeta)
 }
 
 // BaseMapHandler 提供通用实现
@@ -36,6 +38,7 @@ type BaseMapHandler struct {
 	Poller       skeleton.Poller
 	Stats        *metrics.Collector
 	EventHandler meta.EventHandler
+	ExportTypes  []meta.ExportedTypesStructMeta
 }
 
 // setupExporter 设置事件导出器
@@ -109,12 +112,13 @@ func (h *BaseMapHandler) findTargetStruct() (*btf.Struct, error) {
 			continue
 		}
 
-		if structType.Name == h.Config.StructName {
-			return structType, nil
+		for _, exportType := range h.ExportTypes {
+			if exportType.Name == structType.Name {
+				return structType, nil
+			}
 		}
 	}
-	return nil, fmt.Errorf("目标结构体 %s 未找到。请检查：\n1. eBPF C 代码中是否正确定义了该结构体\n2. 是否添加了未使用的指针声明 'struct %s *unused_%s __attribute__((unused))'\n3. Config.StructName 是否与 C 代码中的结构体名称一致",
-		h.Config.StructName, h.Config.StructName, h.Config.StructName)
+	return nil, errors.New("目标结构体未找到。请检查：\n1. eBPF C 代码中是否正确定义了该结构体\n2. 是否添加了未使用的指针声明 'struct %s *unused_%s __attribute__((unused))'\n3. Config.StructName 是否与 C 代码中的结构体名称一致")
 }
 
 // PerfEventMapHandler 实现
@@ -176,6 +180,10 @@ func (h *PerfEventMapHandler) Close() {
 	}
 }
 
+func (h *PerfEventMapHandler) SetExportTypes(exportTypes []meta.ExportedTypesStructMeta) {
+	h.ExportTypes = exportTypes
+}
+
 // RingBufMapHandler 实现
 type RingBufMapHandler struct {
 	BaseMapHandler
@@ -231,6 +239,10 @@ func (h *RingBufMapHandler) SetEventHandler(handler meta.EventHandler) {
 	h.EventHandler = handler
 }
 
+func (h *RingBufMapHandler) SetExportTypes(exportTypes []meta.ExportedTypesStructMeta) {
+	h.ExportTypes = exportTypes
+}
+
 type SampleMapHandler struct {
 	BaseMapHandler
 }
@@ -274,4 +286,8 @@ func (s *SampleMapHandler) SetBTFContainer(btfContainer *container.BTFContainer)
 
 func (s *SampleMapHandler) SetEventHandler(handler meta.EventHandler) {
 	s.EventHandler = handler
+}
+
+func (s *SampleMapHandler) SetExportTypes(exportTypes []meta.ExportedTypesStructMeta) {
+	s.ExportTypes = exportTypes
 }
