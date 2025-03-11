@@ -33,6 +33,12 @@ const TaskList = () => {
     const [pageSize, setPageSize] = useState(10);
     const [componentsLoaded, setComponentsLoaded] = useState(false);
 
+    // 停止任务相关状态
+    const [stopModalVisible, setStopModalVisible] = useState(false);
+    const [taskToStop, setTaskToStop] = useState<Task | null>(null);
+    const [stopLoading, setStopLoading] = useState(false);
+    const [stopForm] = Form.useForm();
+
     // 加载组件列表
     const loadComponents = useCallback(async () => {
         try {
@@ -98,26 +104,54 @@ const TaskList = () => {
         loadData(1);
     };
 
-    // 停止任务
+    // 处理停止任务
     const handleStop = (record: Task) => {
-        confirm({
-            title: '确认停止任务',
-            icon: <ExclamationCircleOutlined />,
-            content: `确定要停止任务 "${record.name}" 吗？`,
-            onOk: async () => {
-                try {
-                    setLoading(true);
-                    await taskService.stopTask(record.id);
-                    message.success(`任务 ${record.name} 已停止`);
-                    loadData();
-                } catch (error: any) {
-                    console.error('停止任务失败:', error);
-                    message.error(`停止失败: ${error.message || '未知错误'}`);
-                } finally {
-                    setLoading(false);
-                }
-            },
-        });
+        console.log('点击停止按钮，任务ID:', record.id, '任务名称:', record.name);
+
+        // 设置要停止的任务并显示确认对话框
+        setTaskToStop(record);
+        setStopModalVisible(true);
+        stopForm.resetFields();
+    };
+
+    // 确认停止任务
+    const confirmStop = async () => {
+        try {
+            await stopForm.validateFields();
+
+            if (!taskToStop) {
+                message.error('未选择要停止的任务');
+                return;
+            }
+
+            setStopLoading(true);
+            try {
+                await taskService.stopTask(taskToStop.id);
+                message.success(`任务 ${taskToStop.name} 已停止`);
+                setStopModalVisible(false);
+
+                // 重新加载数据，确保刷新任务列表
+                setTimeout(() => {
+                    loadData(currentPage, pageSize);
+                    console.log('刷新任务列表，当前页码:', currentPage, '每页条数:', pageSize);
+                }, 500);
+            } catch (error: any) {
+                console.error('停止任务失败:', error);
+                message.error(`停止失败: ${error.message || '未知错误'}`);
+            } finally {
+                setStopLoading(false);
+                setTaskToStop(null);
+            }
+        } catch (error) {
+            // 表单验证失败
+            console.log('表单验证失败:', error);
+        }
+    };
+
+    // 取消停止任务
+    const cancelStop = () => {
+        setStopModalVisible(false);
+        setTaskToStop(null);
     };
 
     // 获取任务状态标签
@@ -240,25 +274,45 @@ const TaskList = () => {
                 </Button>
             </Space>
 
-            <Table
-                columns={columns}
-                dataSource={tasks}
-                rowKey="id"
-                loading={loading}
-                pagination={{
-                    current: currentPage,
-                    pageSize: pageSize,
-                    total: total,
-                    showSizeChanger: true,
-                    showQuickJumper: true,
-                    showTotal: (total) => `共 ${total} 条记录`,
-                    onChange: (page, pageSize) => {
-                        setCurrentPage(page);
-                        setPageSize(pageSize);
-                        loadData(page, pageSize);
-                    },
-                }}
-            />
+            <Spin spinning={loading}>
+                <Table
+                    columns={columns}
+                    dataSource={tasks}
+                    rowKey="id"
+                    pagination={{
+                        current: currentPage,
+                        pageSize: pageSize,
+                        total: total,
+                        showSizeChanger: true,
+                        showQuickJumper: true,
+                        showTotal: (total) => `共 ${total} 条记录`,
+                        onChange: (page, pageSize) => {
+                            setCurrentPage(page);
+                            setPageSize(pageSize);
+                            loadData(page, pageSize);
+                        },
+                    }}
+                />
+            </Spin>
+
+            {/* 停止任务确认弹窗 */}
+            <Modal
+                title={
+                    <div>
+                        <ExclamationCircleOutlined style={{ color: '#ff4d4f', marginRight: 8 }} />
+                        确认停止任务
+                    </div>
+                }
+                open={stopModalVisible}
+                onOk={confirmStop}
+                onCancel={cancelStop}
+                confirmLoading={stopLoading}
+                okText="停止"
+                cancelText="取消"
+                okButtonProps={{ danger: true }}
+            >
+                <p>停止任务后，任务将无法继续执行，请谨慎操作！</p>
+            </Modal>
         </Card>
     );
 };

@@ -222,8 +222,14 @@ const ComponentList = () => {
     const handleRunComponent = async (record: ComponentWithCluster) => {
         try {
             setLoading(true);
-            await taskService.runComponent(record.id);
+            const result = await taskService.runComponent(record.id);
             message.success(`组件 ${record.name} 已开始运行`);
+
+            // 成功运行后跳转到任务列表页面
+            setTimeout(() => {
+                navigate('/tasks/list');
+                console.log('跳转到任务列表页面');
+            }, 500);
         } catch (error: any) {
             console.error('运行组件失败:', error);
             message.error(`运行失败: ${error.message || '未知错误'}`);

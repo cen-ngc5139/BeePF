@@ -86,15 +86,18 @@ func (s *Store) ListTasks(query *utils.Query) (total int64, tasks []*models.Task
 		return 0, nil, result.Error
 	}
 
+	db := database.DB.Preload("ProgStatuses")
+
 	if query != nil && query.PageSize > 0 {
 		offset := (query.PageNum - 1) * query.PageSize
 		if offset < 0 {
 			offset = 0
 		}
-		result = database.DB.Preload("ProgStatuses").Limit(query.PageSize).Offset(offset).Find(&tasksDB)
-	} else {
-		result = database.DB.Preload("ProgStatuses").Find(&tasksDB)
+		db = db.Limit(query.PageSize).Offset(offset)
 	}
+
+	// 按ID倒序排序，确保最新的任务显示在前面
+	result = db.Order("id DESC").Find(&tasksDB)
 	if result.Error != nil {
 		return 0, nil, result.Error
 	}
