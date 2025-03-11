@@ -10,6 +10,7 @@ import {
   UnorderedListOutlined,
   PlusOutlined,
   UploadOutlined,
+  ScheduleOutlined,
 } from '@ant-design/icons'
 import { BrowserRouter as Router, Route, Routes, Link, Navigate } from 'react-router-dom'
 import ComponentList from './pages/components/ComponentList'
@@ -17,6 +18,7 @@ import ComponentDetail from './pages/components/ComponentDetail'
 import UploadComponent from './pages/components/UploadComponent'
 import ClusterList from './pages/clusters/ClusterList'
 import CreateCluster from './pages/clusters/CreateCluster'
+import TaskList from './pages/tasks/TaskList'
 import PageBreadcrumb from './components/PageBreadcrumb'
 
 const { Header, Sider, Content } = Layout
@@ -78,6 +80,18 @@ function App() {
                 ],
               },
               {
+                key: 'tasks',
+                icon: <ScheduleOutlined />,
+                label: '任务管理',
+                children: [
+                  {
+                    key: 'tasks-list',
+                    icon: <UnorderedListOutlined />,
+                    label: <Link to="/tasks/list">任务列表</Link>,
+                  },
+                ],
+              },
+              {
                 key: '3',
                 icon: <LineChartOutlined />,
                 label: <Link to="/observability">可观测</Link>,
@@ -133,6 +147,7 @@ function App() {
               <Route path="/components/create" element={<Navigate to="/components/upload" replace />} />
               <Route path="/components/upload" element={<UploadComponent />} />
               <Route path="/component/:id" element={<ComponentDetail />} />
+              <Route path="/tasks/list" element={<TaskList />} />
               <Route path="/observability" element={<div>可观测</div>} />
               <Route path="/workflow" element={<div>工作流</div>} />
             </Routes>

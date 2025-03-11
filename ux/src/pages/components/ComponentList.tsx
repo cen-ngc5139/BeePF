@@ -13,11 +13,12 @@ import {
     Tag,
     Form
 } from 'antd'
-import { SearchOutlined, MoreOutlined, PlusOutlined, UploadOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
+import { SearchOutlined, MoreOutlined, PlusOutlined, UploadOutlined, ExclamationCircleOutlined, PlayCircleOutlined } from '@ant-design/icons'
 import type { TableProps } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import componentService, { Component } from '../../services/componentService'
 import clusterService, { Cluster } from '../../services/clusterService'
+import taskService from '../../services/taskService'
 
 interface ComponentWithCluster extends Component {
     clusterName?: string;
@@ -217,6 +218,20 @@ const ComponentList = () => {
             });
     };
 
+    // 在组件中添加运行组件的方法
+    const handleRunComponent = async (record: ComponentWithCluster) => {
+        try {
+            setLoading(true);
+            await taskService.runComponent(record.id);
+            message.success(`组件 ${record.name} 已开始运行`);
+        } catch (error: any) {
+            console.error('运行组件失败:', error);
+            message.error(`运行失败: ${error.message || '未知错误'}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const columns: TableProps<ComponentWithCluster>['columns'] = [
         {
             title: 'ID',
@@ -266,6 +281,12 @@ const ComponentList = () => {
                                 key: 'view',
                                 label: '查看详情',
                                 onClick: () => navigate(`/component/${record.id}`),
+                            },
+                            {
+                                key: 'run',
+                                label: '运行',
+                                icon: <PlayCircleOutlined />,
+                                onClick: () => handleRunComponent(record),
                             },
                             {
                                 key: 'delete',
