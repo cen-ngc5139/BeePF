@@ -16,9 +16,10 @@ import {
     Row,
     Col
 } from 'antd';
-import { ArrowLeftOutlined, CodeOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CodeOutlined, DatabaseOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import componentService, { Component, Program, Map } from '../../services/componentService';
 import clusterService from '../../services/clusterService';
+import taskService from '../../services/taskService';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -30,6 +31,7 @@ const ComponentDetail = () => {
     const [loading, setLoading] = useState(true);
     const [component, setComponent] = useState<Component | null>(null);
     const [clusterName, setClusterName] = useState<string>('未知集群');
+    const [runLoading, setRunLoading] = useState(false);
 
     // 加载组件详情
     const loadComponentDetail = async () => {
@@ -61,6 +63,27 @@ const ComponentDetail = () => {
     useEffect(() => {
         loadComponentDetail();
     }, [id]);
+
+    // 运行组件
+    const handleRunComponent = async () => {
+        if (!component) return;
+
+        try {
+            setRunLoading(true);
+            const result = await taskService.runComponent(component.id);
+            message.success(`组件 ${component.name} 已开始运行`);
+
+            // 成功运行后跳转到任务列表页面
+            setTimeout(() => {
+                navigate('/tasks/list');
+            }, 500);
+        } catch (error: any) {
+            console.error('运行组件失败:', error);
+            message.error(`运行失败: ${error.message || '未知错误'}`);
+        } finally {
+            setRunLoading(false);
+        }
+    };
 
     // 渲染程序表格
     const renderProgramsTable = () => {
@@ -349,17 +372,31 @@ const ComponentDetail = () => {
     return (
         <div>
             <div style={{ marginBottom: 16 }}>
-                <Button
-                    type="link"
-                    icon={<ArrowLeftOutlined />}
-                    onClick={() => navigate('/components/list')}
-                    style={{ paddingLeft: 0 }}
-                >
-                    返回组件列表
-                </Button>
+                <Space>
+                    <Button
+                        type="link"
+                        icon={<ArrowLeftOutlined />}
+                        onClick={() => navigate('/components/list')}
+                        style={{ paddingLeft: 0 }}
+                    >
+                        返回组件列表
+                    </Button>
+                </Space>
             </div>
 
-            <Card title={<Title level={4}>{component.name} 详情</Title>}>
+            <Card
+                title={<Title level={4}>{component.name} 详情</Title>}
+                extra={
+                    <Button
+                        type="primary"
+                        icon={<PlayCircleOutlined />}
+                        onClick={handleRunComponent}
+                        loading={runLoading}
+                    >
+                        运行组件
+                    </Button>
+                }
+            >
                 <Descriptions title="基本信息" bordered>
                     <Descriptions.Item label="ID">{component.id}</Descriptions.Item>
                     <Descriptions.Item label="名称">{component.name}</Descriptions.Item>
