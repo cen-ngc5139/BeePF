@@ -30,17 +30,18 @@ type Loader interface {
 
 // BPFLoader 实现 eBPF 程序加载器
 type BPFLoader struct {
-	Logger          *zap.Logger
-	Config          *Config
-	Collection      *ebpf.Collection
-	Skeleton        *skeleton.BpfSkeleton
-	PreLoadSkeleton *skeleton.PreLoadBpfSkeleton
-	Pollers         []*skeleton.ProgramPoller
-	MapHandlers     []MapHandler
-	BTFContainer    *container.BTFContainer
-	Links           []link.Link
-	done            chan struct{}
-	StatsCollector  metrics.Collector
+	Logger           *zap.Logger
+	Config           *Config
+	Collection       *ebpf.Collection
+	Skeleton         *skeleton.BpfSkeleton
+	PreLoadSkeleton  *skeleton.PreLoadBpfSkeleton
+	Pollers          []*skeleton.ProgramPoller
+	MapHandlers      []MapHandler
+	BTFContainer     *container.BTFContainer
+	Links            []link.Link
+	done             chan struct{}
+	StatsCollector   metrics.Collector
+	ProgAttachStatus map[string]meta.ProgAttachStatus
 }
 
 // Config 配置结构
@@ -124,7 +125,7 @@ func (l *BPFLoader) Load() error {
 	l.Logger.Info("loading BPF programs...")
 
 	// 加载并附加 eBPF 程序
-	skel, err := l.PreLoadSkeleton.LoadAndAttach()
+	skel, attachStatus, err := l.PreLoadSkeleton.LoadAndAttach()
 	if err != nil {
 		return fmt.Errorf("load and attach BPF programs failed: %w", err)
 	}
@@ -132,6 +133,7 @@ func (l *BPFLoader) Load() error {
 	l.Collection = skel.Collection
 	l.BTFContainer = skel.Btf
 	l.Links = skel.Links
+	l.ProgAttachStatus = attachStatus
 	for _, handler := range l.MapHandlers {
 		handler.SetCollection(l.Collection)
 		handler.SetBTFContainer(l.BTFContainer)

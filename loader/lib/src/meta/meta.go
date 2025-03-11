@@ -352,6 +352,22 @@ type RunnerConfig struct {
 	ProgProperties ProgramProperties `json:"prog_properties,omitempty"`
 }
 
+type TaskStatus int
+
+const (
+	TaskStatusPending TaskStatus = iota
+	TaskStatusRunning
+	TaskStatusSuccess
+	TaskStatusFailed
+)
+
+// prog attach status
+type ProgAttachStatus struct {
+	ProgName string     `json:"prog_name"`
+	Status   TaskStatus `json:"status"`
+	Error    string     `json:"error"`
+}
+
 // FindMapByIdent 通过标识符查找 Map
 func (s *BpfSkeletonMeta) FindMapByIdent(ident string) *MapMeta {
 	for _, m := range s.Maps {

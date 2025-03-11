@@ -94,15 +94,17 @@ func (p *PreLoadBpfSkeleton) LoadPinProgram(progMeta *meta.ProgMeta) (*ebpf.Prog
 }
 
 // LoadAndAttach 加载并附加 eBPF 程序
-func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, error) {
+func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, map[string]meta.ProgAttachStatus, error) {
+	progAttachStatus := make(map[string]meta.ProgAttachStatus)
+
 	collectionOptions := ebpf.CollectionOptions{}
 	mergedMaps, err := p.MergeMapProperties()
 	if err != nil {
-		return nil, fmt.Errorf("merge map properties error: %w", err)
+		return nil, progAttachStatus, fmt.Errorf("merge map properties error: %w", err)
 	}
 
 	if err := p.CheckPinPath(mergedMaps); err != nil {
-		return nil, fmt.Errorf("check pin path error: %w", err)
+		return nil, progAttachStatus, fmt.Errorf("check pin path error: %w", err)
 	}
 
 	collectionOptions.MapReplacements = mergedMaps
@@ -110,20 +112,29 @@ func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, error) {
 	// 直接加载 BPF 对象集合，cilium/ebpf 会自动处理 .rodata 和 .bss
 	coll, err := ebpf.NewCollectionWithOptions(p.Spec, collectionOptions)
 	if err != nil {
-		return nil, fmt.Errorf("load collection error: %w", err)
+		return nil, progAttachStatus, fmt.Errorf("load collection error: %w", err)
 	}
 
 	// 附加程序
 	var links []link.Link
 	for _, progMeta := range p.Meta.BpfSkel.Progs {
+		status := meta.ProgAttachStatus{
+			ProgName: progMeta.Name,
+			Status:   meta.TaskStatusPending,
+		}
+
 		prog := coll.Programs[progMeta.Name]
 		if prog == nil {
-			return nil, fmt.Errorf("program %s not found", progMeta.Name)
+			err := fmt.Errorf("program %s not found", progMeta.Name)
+			progAttachStatus[progMeta.Name] = genAttachErr(status, err)
+			return nil, progAttachStatus, err
 		}
 
 		progSpec := p.Spec.Programs[progMeta.Name]
 		if progSpec == nil {
-			return nil, fmt.Errorf("program %s not found", progMeta.Name)
+			err := fmt.Errorf("program %s not found", progMeta.Name)
+			progAttachStatus[progMeta.Name] = genAttachErr(status, err)
+			return nil, progAttachStatus, err
 		}
 
 		if !progMeta.Link {
@@ -133,14 +144,18 @@ func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, error) {
 		// 根据不同的 AttachType 使用对应的 attach 方式
 		link, err := progMeta.AttachProgram(progSpec, prog)
 		if err != nil {
-			return nil, fmt.Errorf("attach program %s error: %w", progMeta.Name, err)
+			err := fmt.Errorf("attach program %s error: %w", progMeta.Name, err)
+			progAttachStatus[progMeta.Name] = genAttachErr(status, err)
+			return nil, progAttachStatus, err
 		}
 
 		// 如果设置了 pinPath，则将程序 pin 到文件系统
 		linkPinPath := progMeta.Properties.LinkPinPath
 		if linkPinPath != "" {
 			if err := link.Pin(linkPinPath); err != nil {
-				return nil, fmt.Errorf("pin program %s error: %w", progMeta.Name, err)
+				err := fmt.Errorf("pin program %s error: %w", progMeta.Name, err)
+				progAttachStatus[progMeta.Name] = genAttachErr(status, err)
+				return nil, progAttachStatus, err
 			}
 		}
 
@@ -153,5 +168,15 @@ func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, error) {
 		Links:      links,
 		Collection: coll,
 		Btf:        p.Btf,
-	}, nil
+	}, progAttachStatus, nil
+}
+
+func genAttachErr(status meta.ProgAttachStatus, err error) meta.ProgAttachStatus {
+	status.Status = meta.TaskStatusFailed
+	status.Error = err.Error()
+	return status
+}
+
+func (p *PreLoadBpfSkeleton) GetProgAttachStatus() map[string]meta.ProgAttachStatus {
+	return p.ProgAttachStatus
 }

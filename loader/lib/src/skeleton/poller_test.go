@@ -53,7 +53,7 @@ func TestRingBufferPoller_Poll(t *testing.T) {
 				return
 			}
 
-			skeleton, err := preLoadBpfSkeleton.LoadAndAttach()
+			skeleton, _, err := preLoadBpfSkeleton.LoadAndAttach()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LoadAndAttach() error = %v, wantErr %v", err, tt.wantErr)
 				return

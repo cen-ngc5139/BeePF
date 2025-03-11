@@ -50,7 +50,7 @@ func TestPreLoadBpfSkeleton_LoadAndAttach(t *testing.T) {
 				return
 			}
 
-			got, err := preLoadBpfSkeleton.LoadAndAttach()
+			got, _, err := preLoadBpfSkeleton.LoadAndAttach()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LoadAndAttach() error = %v, wantErr %v", err, tt.wantErr)
 				return
