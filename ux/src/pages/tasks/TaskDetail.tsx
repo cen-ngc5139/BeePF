@@ -23,12 +23,38 @@ import type { TableProps } from 'antd';
 const { Title, Text } = Typography;
 const { confirm } = Modal;
 
+// 任务步骤枚举
+enum TaskStep {
+    Init = 0,
+    Load = 1,
+    Start = 2,
+    Stats = 3,
+    Metrics = 4,
+    Stop = 5
+}
+
+// 任务步骤描述
+const TaskStepDescriptions: Record<number, string> = {
+    [TaskStep.Init]: '初始化',
+    [TaskStep.Load]: '加载',
+    [TaskStep.Start]: '启动',
+    [TaskStep.Stats]: '统计',
+    [TaskStep.Metrics]: '指标',
+    [TaskStep.Stop]: '停止'
+};
+
+// 获取任务步骤描述
+const getTaskStepDescription = (step: number): string => {
+    return TaskStepDescriptions[step] || `步骤${step}`;
+};
+
 const TaskDetail = () => {
     const { taskId } = useParams<{ taskId: string }>();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [task, setTask] = useState<Task | null>(null);
     const [stopLoading, setStopLoading] = useState(false);
+    const [stopModalVisible, setStopModalVisible] = useState(false);
 
     // 获取任务详情
     const fetchTaskDetail = async () => {
@@ -52,32 +78,33 @@ const TaskDetail = () => {
         fetchTaskDetail();
     }, [taskId]);
 
-    // 停止任务
+    // 打开停止确认弹窗
     const handleStop = () => {
+        setStopModalVisible(true);
+    };
+
+    // 确认停止任务
+    const confirmStop = async () => {
         if (!task) return;
 
-        confirm({
-            title: '确认停止任务',
-            icon: <ExclamationCircleOutlined />,
-            content: `确定要停止任务 "${task.name}" 吗？停止后任务将无法继续执行。`,
-            okText: '停止',
-            okButtonProps: { danger: true },
-            cancelText: '取消',
-            onOk: async () => {
-                try {
-                    setStopLoading(true);
-                    await taskService.stopTask(task.id);
-                    message.success(`任务 ${task.name} 已停止`);
-                    // 重新获取任务详情
-                    fetchTaskDetail();
-                } catch (error: any) {
-                    console.error('停止任务失败:', error);
-                    message.error(`停止失败: ${error.message || '未知错误'}`);
-                } finally {
-                    setStopLoading(false);
-                }
-            },
-        });
+        try {
+            setStopLoading(true);
+            await taskService.stopTask(task.id);
+            message.success(`任务 ${task.name} 已停止`);
+            setStopModalVisible(false);
+            // 重新获取任务详情
+            fetchTaskDetail();
+        } catch (error: any) {
+            console.error('停止任务失败:', error);
+            message.error(`停止失败: ${error.message || '未知错误'}`);
+        } finally {
+            setStopLoading(false);
+        }
+    };
+
+    // 取消停止任务
+    const cancelStop = () => {
+        setStopModalVisible(false);
     };
 
     // 获取任务状态标签
@@ -184,7 +211,11 @@ const TaskDetail = () => {
                                 <Statistic title="组件" value={task.component_name} />
                             </Col>
                             <Col span={6}>
-                                <Statistic title="步骤" value={task.step} />
+                                <Statistic
+                                    title="步骤"
+                                    value={task.step}
+                                    formatter={(value) => getTaskStepDescription(value as number)}
+                                />
                             </Col>
                         </Row>
 
@@ -211,6 +242,25 @@ const TaskDetail = () => {
                     </div>
                 )}
             </Card>
+
+            {/* 停止任务确认弹窗 */}
+            <Modal
+                title={
+                    <div>
+                        <ExclamationCircleOutlined style={{ color: '#ff4d4f', marginRight: 8 }} />
+                        确认停止任务
+                    </div>
+                }
+                open={stopModalVisible}
+                onOk={confirmStop}
+                onCancel={cancelStop}
+                confirmLoading={stopLoading}
+                okText="停止"
+                cancelText="取消"
+                okButtonProps={{ danger: true }}
+            >
+                <p>确定要停止任务 "{task?.name}" 吗？停止后任务将无法继续执行。</p>
+            </Modal>
         </Spin>
     );
 };
