@@ -19,6 +19,7 @@ import UploadComponent from './pages/components/UploadComponent'
 import ClusterList from './pages/clusters/ClusterList'
 import CreateCluster from './pages/clusters/CreateCluster'
 import TaskList from './pages/tasks/TaskList'
+import TaskDetail from './pages/tasks/TaskDetail'
 import PageBreadcrumb from './components/PageBreadcrumb'
 
 const { Header, Sider, Content } = Layout
@@ -148,6 +149,7 @@ function App() {
               <Route path="/components/upload" element={<UploadComponent />} />
               <Route path="/component/:id" element={<ComponentDetail />} />
               <Route path="/tasks/list" element={<TaskList />} />
+              <Route path="/task/:taskId" element={<TaskDetail />} />
               <Route path="/observability" element={<div>可观测</div>} />
               <Route path="/workflow" element={<div>工作流</div>} />
             </Routes>
