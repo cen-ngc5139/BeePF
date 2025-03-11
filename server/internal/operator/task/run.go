@@ -179,6 +179,23 @@ func (o *Operator) RunComponentAsync(task *models.Task, component *models.Compon
 	// 启动BPF程序
 	task.Step = models.TaskStepStart
 	task.UpdatedAt = time.Now()
+
+	// 更新程序状态
+	progStatuses := make([]models.ComProgStatus, 0, len(task.ProgStatus))
+	for _, prog := range task.ProgStatus {
+		status, ok := bpfLoader.ProgAttachStatus[prog.ProgramName]
+		if !ok {
+			prog.Status = models.TaskStatusFailed
+			prog.Error = "程序未找到"
+		}
+
+		prog.Status = models.TaskStatus(status.Status)
+		prog.Error = status.Error
+		progStatuses = append(progStatuses, prog)
+	}
+
+	task.ProgStatus = progStatuses
+
 	err = o.TaskStore.UpdateTask(task)
 	if err != nil {
 		logger.Error("更新任务步骤失败", zap.Error(err))

@@ -160,6 +160,9 @@ func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, map[string]meta.Prog
 		}
 
 		links = append(links, link)
+
+		status.Status = meta.TaskStatusSuccess
+		progAttachStatus[progMeta.Name] = status
 	}
 
 	return &BpfSkeleton{
@@ -175,8 +178,4 @@ func genAttachErr(status meta.ProgAttachStatus, err error) meta.ProgAttachStatus
 	status.Status = meta.TaskStatusFailed
 	status.Error = err.Error()
 	return status
-}
-
-func (p *PreLoadBpfSkeleton) GetProgAttachStatus() map[string]meta.ProgAttachStatus {
-	return p.ProgAttachStatus
 }
