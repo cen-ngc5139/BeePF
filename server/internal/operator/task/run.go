@@ -4,23 +4,17 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
 	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
+	"github.com/cen-ngc5139/BeePF/server/internal/cache"
 	"github.com/cen-ngc5139/BeePF/server/models"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-)
-
-// 用于存储正在运行的任务
-var (
-	runningTasks     = make(map[uint64]*RunningTask)
-	runningTasksLock sync.RWMutex
 )
 
 // RunningTask 表示正在运行的任务
@@ -46,7 +40,7 @@ func (o *Operator) CreateAndRunTask(component *models.Component) (*models.Task, 
 	}
 
 	// 为每个程序创建状态记录
-	if component.Programs != nil && len(component.Programs) > 0 {
+	if component.Programs != nil {
 		task.ProgStatus = make([]models.ComProgStatus, len(component.Programs))
 		for i, prog := range component.Programs {
 			task.ProgStatus[i] = models.ComProgStatus{
@@ -105,16 +99,11 @@ func (o *Operator) RunComponentAsync(task *models.Task, component *models.Compon
 		CancelFunc: cancel,
 		Logger:     logger,
 	}
-
-	runningTasksLock.Lock()
-	runningTasks[task.ID] = runningTask
-	runningTasksLock.Unlock()
+	cache.TaskRunningStore.Store(task.ID, runningTask)
 
 	// 确保在函数结束时清理资源
 	defer func() {
-		runningTasksLock.Lock()
-		delete(runningTasks, task.ID)
-		runningTasksLock.Unlock()
+		cache.TaskRunningStore.Delete(task.ID)
 	}()
 
 	// 配置BPF加载器
@@ -278,27 +267,20 @@ func (o *Operator) RunComponentAsync(task *models.Task, component *models.Compon
 
 // StopTask 停止正在运行的任务
 func (o *Operator) StopTask(taskID uint64) error {
-	runningTasksLock.RLock()
-	runningTask, exists := runningTasks[taskID]
-	runningTasksLock.RUnlock()
-
+	runningTask, exists := cache.TaskRunningStore.Load(taskID)
 	if !exists {
 		return errors.New("任务不存在或已停止")
 	}
-
-	// 取消任务
-	runningTask.CancelFunc()
+	runningTask.(*RunningTask).CancelFunc()
 	return nil
 }
 
 // GetRunningTasks 获取所有正在运行的任务
 func (o *Operator) GetRunningTasks() []*models.Task {
-	runningTasksLock.RLock()
-	defer runningTasksLock.RUnlock()
-
-	tasks := make([]*models.Task, 0, len(runningTasks))
-	for _, rt := range runningTasks {
-		tasks = append(tasks, rt.Task)
-	}
-	return tasks
+	runningTasks := make([]*models.Task, 0)
+	cache.TaskRunningStore.Range(func(key, value any) bool {
+		runningTasks = append(runningTasks, value.(*RunningTask).Task)
+		return true
+	})
+	return runningTasks
 }
