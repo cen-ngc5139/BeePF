@@ -135,6 +135,8 @@ func (o *Operator) RunComponentAsync(task *models.Task, component *models.Compon
 		return
 	}
 
+	cache.TaskRunningStore.Store(task.ID, runningTask)
+
 	// 加载BPF程序
 	task.Step = models.TaskStepLoad
 	task.UpdatedAt = time.Now()
@@ -160,6 +162,9 @@ func (o *Operator) RunComponentAsync(task *models.Task, component *models.Compon
 	task.Step = models.TaskStepStart
 	task.UpdatedAt = time.Now()
 
+	runningTask.BPFLoader = bpfLoader
+	cache.TaskRunningStore.Store(task.ID, runningTask)
+
 	// 更新程序状态
 	progStatuses := make([]models.ComProgStatus, 0, len(task.ProgStatus))
 	for _, prog := range task.ProgStatus {
@@ -170,6 +175,7 @@ func (o *Operator) RunComponentAsync(task *models.Task, component *models.Compon
 		}
 
 		prog.Status = models.TaskStatus(status.Status)
+		prog.AttachID = status.AttachID
 		prog.Error = status.Error
 		progStatuses = append(progStatuses, prog)
 	}
@@ -181,6 +187,8 @@ func (o *Operator) RunComponentAsync(task *models.Task, component *models.Compon
 		logger.Error("更新任务步骤失败", zap.Error(err))
 		return
 	}
+
+	cache.TaskRunningStore.Store(task.ID, runningTask)
 
 	if err := bpfLoader.Start(); err != nil {
 		logger.Error("启动失败", zap.Error(err))
@@ -201,6 +209,8 @@ func (o *Operator) RunComponentAsync(task *models.Task, component *models.Compon
 		logger.Error("更新任务步骤失败", zap.Error(err))
 		return
 	}
+
+	cache.TaskRunningStore.Store(task.ID, runningTask)
 
 	if err := bpfLoader.Stats(); err != nil {
 		logger.Error("启动统计收集器失败", zap.Error(err))
@@ -232,6 +242,8 @@ func (o *Operator) RunComponentAsync(task *models.Task, component *models.Compon
 		}
 		return
 	}
+
+	cache.TaskRunningStore.Store(task.ID, runningTask)
 
 	// 等待取消信号或上下文取消
 	sigChan := make(chan os.Signal, 1)

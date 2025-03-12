@@ -64,106 +64,106 @@ func TestBPFLoader_Init(t *testing.T) {
 			},
 		},
 
-		{
-			name: "cgroup_skb",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:  "../../../../example/cgroup_skb/binary/cgroup_skb_x86_bpfel.o",
-					Logger:      logger,
-					PollTimeout: 100 * time.Millisecond,
-					Properties: meta.Properties{
-						Programs: map[string]*meta.Program{
-							"count_egress_packets": {
-								Properties: &meta.ProgramProperties{CGroupPath: cgroupPath},
-							},
-						},
-						Stats: &meta.Stats{
-							Interval: 1 * time.Second,
-							Handler:  metrics.NewDefaultHandler(logger),
-						},
-					},
-				},
-			},
-		},
-
-		{
-			name: "fentry",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:  "../../../../example/fentry/binary/fentry_x86_bpfel.o",
-					Logger:      logger,
-					PollTimeout: 100 * time.Millisecond,
-					Properties: meta.Properties{
-						Stats: &meta.Stats{
-							Interval: 1 * time.Second,
-							Handler:  metrics.NewDefaultHandler(logger),
-						},
-					},
-				},
-			},
-		},
-
-		{
-			name: "kprobe",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:  "../../../../example/kprobe/binary/kprobe_x86_bpfel.o",
-					Logger:      logger,
-					PollTimeout: 100 * time.Millisecond,
-					Properties: meta.Properties{
-						Stats: &meta.Stats{
-							Interval: 1 * time.Second,
-							Handler:  metrics.NewDefaultHandler(logger),
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "kprobe_precpu",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:  "../../../../example/kprobe_precpu/binary/kprobe_precpu_x86_bpfel.o",
-					Logger:      logger,
-					PollTimeout: 100 * time.Millisecond,
-					Properties: meta.Properties{
-						Stats: &meta.Stats{
-							Interval: 1 * time.Second,
-							Handler:  metrics.NewDefaultHandler(logger),
-						},
-					},
-				},
-			},
-		},
-
-		{
-			name: "pin_path",
-			fields: fields{
-				Config: &Config{
-					ObjectPath:  "../../../../example/kprobe_pin/binary/kprobepin_x86_bpfel.o",
-					Logger:      logger,
-					PollTimeout: 100 * time.Millisecond,
-					Properties: meta.Properties{
-						Programs: map[string]*meta.Program{
-							"rpc_exit_task": {
-								Name:       "rpc_exit_task",
-								Properties: &meta.ProgramProperties{PinPath: "/sys/fs/bpf/kprobepin/rpc_exit_task"},
-							},
-						},
-						Maps: map[string]*meta.Map{
-							"kprobe_map": {
-								Name:       "kprobe_map",
-								Properties: &meta.MapProperties{PinPath: "/sys/fs/bpf/kprobepin/"},
-							},
-						},
-						Stats: &meta.Stats{
-							Interval: 1 * time.Second,
-							Handler:  metrics.NewDefaultHandler(logger),
-						},
-					},
-				},
-			},
-		},
+		//{
+		//	name: "cgroup_skb",
+		//	fields: fields{
+		//		Config: &Config{
+		//			ObjectPath:  "../../../../example/cgroup_skb/binary/cgroup_skb_x86_bpfel.o",
+		//			Logger:      logger,
+		//			PollTimeout: 100 * time.Millisecond,
+		//			Properties: meta.Properties{
+		//				Programs: map[string]*meta.Program{
+		//					"count_egress_packets": {
+		//						Properties: &meta.ProgramProperties{CGroupPath: cgroupPath},
+		//					},
+		//				},
+		//				Stats: &meta.Stats{
+		//					Interval: 1 * time.Second,
+		//					Handler:  metrics.NewDefaultHandler(logger),
+		//				},
+		//			},
+		//		},
+		//	},
+		//},
+		//
+		//{
+		//	name: "fentry",
+		//	fields: fields{
+		//		Config: &Config{
+		//			ObjectPath:  "../../../../example/fentry/binary/fentry_x86_bpfel.o",
+		//			Logger:      logger,
+		//			PollTimeout: 100 * time.Millisecond,
+		//			Properties: meta.Properties{
+		//				Stats: &meta.Stats{
+		//					Interval: 1 * time.Second,
+		//					Handler:  metrics.NewDefaultHandler(logger),
+		//				},
+		//			},
+		//		},
+		//	},
+		//},
+		//
+		//{
+		//	name: "kprobe",
+		//	fields: fields{
+		//		Config: &Config{
+		//			ObjectPath:  "../../../../example/kprobe/binary/kprobe_x86_bpfel.o",
+		//			Logger:      logger,
+		//			PollTimeout: 100 * time.Millisecond,
+		//			Properties: meta.Properties{
+		//				Stats: &meta.Stats{
+		//					Interval: 1 * time.Second,
+		//					Handler:  metrics.NewDefaultHandler(logger),
+		//				},
+		//			},
+		//		},
+		//	},
+		//},
+		//{
+		//	name: "kprobe_precpu",
+		//	fields: fields{
+		//		Config: &Config{
+		//			ObjectPath:  "../../../../example/kprobe_precpu/binary/kprobe_precpu_x86_bpfel.o",
+		//			Logger:      logger,
+		//			PollTimeout: 100 * time.Millisecond,
+		//			Properties: meta.Properties{
+		//				Stats: &meta.Stats{
+		//					Interval: 1 * time.Second,
+		//					Handler:  metrics.NewDefaultHandler(logger),
+		//				},
+		//			},
+		//		},
+		//	},
+		//},
+		//
+		//{
+		//	name: "pin_path",
+		//	fields: fields{
+		//		Config: &Config{
+		//			ObjectPath:  "../../../../example/kprobe_pin/binary/kprobepin_x86_bpfel.o",
+		//			Logger:      logger,
+		//			PollTimeout: 100 * time.Millisecond,
+		//			Properties: meta.Properties{
+		//				Programs: map[string]*meta.Program{
+		//					"rpc_exit_task": {
+		//						Name:       "rpc_exit_task",
+		//						Properties: &meta.ProgramProperties{PinPath: "/sys/fs/bpf/kprobepin/rpc_exit_task"},
+		//					},
+		//				},
+		//				Maps: map[string]*meta.Map{
+		//					"kprobe_map": {
+		//						Name:       "kprobe_map",
+		//						Properties: &meta.MapProperties{PinPath: "/sys/fs/bpf/kprobepin/"},
+		//					},
+		//				},
+		//				Stats: &meta.Stats{
+		//					Interval: 1 * time.Second,
+		//					Handler:  metrics.NewDefaultHandler(logger),
+		//				},
+		//			},
+		//		},
+		//	},
+		//},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

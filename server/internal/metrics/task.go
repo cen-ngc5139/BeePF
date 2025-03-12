@@ -70,17 +70,22 @@ func NewTaskStatsMetrics() *TaskStatsMetrics {
 	}
 }
 
-func (m *TaskMetrics) UpdateMetricsFromCache(nodeName string) {
-	m.TaskStore.Range(func(key, value interface{}) bool {
-		task, ok := value.(models.RunningTask)
-		if !ok {
-			fmt.Errorf("value is not a RunningTask", zap.Any("value", value))
-			return true
-		}
+func (m *TaskMetrics) ResetMetrics() {
+	m.TaskStats.TaskCPUUsage.Reset()
+	m.TaskStats.TaskEventsPerSecond.Reset()
+	m.TaskStats.TaskAvgRunTimeNS.Reset()
+	m.TaskStats.TaskTotalAvgRunTimeNS.Reset()
+	m.TaskStats.TaskPeriodNS.Reset()
+}
 
+func (m *TaskMetrics) UpdateMetricsFromCache(nodeName string) {
+	m.ResetMetrics()
+	m.TaskStore.Range(func(key, value interface{}) bool {
+		task := value.(*models.RunningTask)
 		taskID := fmt.Sprintf("%d", task.Task.ID)
 		for _, v := range task.Task.ProgStatus {
-			programStats, err := task.BPFLoader.StatsCollector.GetProgramStats(uint32(v.AttachID))
+			// todo 此处通过 prog attach id 无法找到对应的 prog stats
+			programStats, err := task.BPFLoader.StatsCollector.GetProgramStats(v.AttachID)
 			if err != nil {
 				fmt.Errorf("get program stats failed", zap.Error(err))
 				return true
