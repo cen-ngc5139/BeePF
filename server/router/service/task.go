@@ -108,3 +108,22 @@ func (t *Task) Running() gin.HandlerFunc {
 		utils.HandleResult(c, &data)
 	}
 }
+
+// Metrics 获取任务指标
+func (t *Task) Metrics() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		taskId := c.Param("taskId")
+		id, err := strconv.ParseUint(taskId, 10, 64)
+		if utils.HandleError(c, err) {
+			return
+		}
+
+		taskOp := task.NewOperator()
+		metrics, err := taskOp.GetTaskMetrics(id)
+		if utils.HandleError(c, err) {
+			return
+		}
+
+		utils.HandleResult(c, metrics)
+	}
+}

@@ -39,6 +39,7 @@ func (s *Server) initRouter() *gin.Engine {
 		v1.POST("/task/component/:componentId", taskService.Create())
 		v1.GET("/task/running", taskService.Running())
 		v1.POST("/task/:taskId/stop", taskService.Stop())
+		v1.GET("/task/:taskId/metrics", taskService.Metrics())
 	}
 
 	return s.router

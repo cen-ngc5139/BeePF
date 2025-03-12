@@ -16,10 +16,15 @@ type HttpConfig struct {
 }
 
 type GlobalConfig struct {
-	Http     *HttpConfig `json:"http"`
-	Database *Database   `json:"database"`
-	LogMode  string      `json:"logMode"`
-	Env      string      `json:"env"`
+	Http     *HttpConfig    `json:"http"`
+	Database *Database      `json:"database"`
+	LogMode  string         `json:"logMode"`
+	Env      string         `json:"env"`
+	Metrics  *MetricsConfig `json:"metrics"`
+}
+
+type MetricsConfig struct {
+	PrometheusHost string `json:"prometheusHost"`
 }
 
 type Database struct {

@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,11 +11,24 @@ import (
 	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
+	"github.com/cen-ngc5139/BeePF/server/conf"
 	"github.com/cen-ngc5139/BeePF/server/internal/cache"
 	"github.com/cen-ngc5139/BeePF/server/models"
+	"github.com/cen-ngc5139/BeePF/server/pkg/cli"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+
 	"go.uber.org/zap"
+)
+
+var (
+	TaskStatsPrometheusQuery = []string{
+		"beepf_task_cpu_usage",
+		"beepf_task_period_ns",
+		"beepf_task_avg_run_time_ns",
+		"beepf_task_events_per_second",
+		"beepf_task_total_avg_run_time_ns",
+	}
 )
 
 // CreateAndRunTask 创建并运行任务
@@ -287,4 +301,36 @@ func (o *Operator) GetRunningTasks() []*models.Task {
 		return true
 	})
 	return runningTasks
+}
+
+func (o *Operator) GetTaskMetrics(taskID uint64) (*models.TaskMetrics, error) {
+	metrics := &models.TaskMetrics{}
+	promClient, err := cli.NewPromClient(conf.Config().Metrics.PrometheusHost)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, m := range TaskStatsPrometheusQuery {
+		query := fmt.Sprintf("%s{task_id=\"%d\"}", m, taskID)
+		points, err := promClient.RangeQuery(query, time.Now().Add(-time.Hour*1), time.Now(), time.Minute*1)
+		if err != nil {
+			return nil, err
+		}
+
+		switch m {
+		case "beepf_task_avg_run_time_ns":
+			metrics.AvgRunTimeNS = points
+		case "beepf_task_cpu_usage":
+			metrics.CPUUsage = points
+		case "beepf_task_events_per_second":
+			metrics.EventsPerSecond = points
+		case "beepf_task_period_ns":
+			metrics.PeriodNS = points
+		case "beepf_task_total_avg_run_time_ns":
+			metrics.TotalAvgRunTimeNS = points
+		}
+
+	}
+
+	return metrics, nil
 }

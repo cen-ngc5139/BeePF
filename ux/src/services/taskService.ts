@@ -28,6 +28,19 @@ export interface ProgStatus {
     updated_at: string;
 }
 
+interface MetricPoint {
+    timestamp: string;
+    value: number;
+}
+
+interface TaskMetrics {
+    avg_run_time_ns: MetricPoint[];
+    cpu_usage: MetricPoint[];
+    events_per_second: MetricPoint[];
+    period_ns: MetricPoint[];
+    total_avg_run_time_ns: MetricPoint[];
+}
+
 class TaskService {
     /**
      * 创建并运行组件任务
@@ -128,6 +141,25 @@ class TaskService {
             throw new Error(responseData.errorMsg || '停止任务失败');
         } catch (error) {
             console.error('停止任务失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 获取任务指标
+     * @param taskId 任务ID
+     * @returns 任务指标数据
+     */
+    async getTaskMetrics(taskId: number): Promise<TaskMetrics> {
+        try {
+            const response = await api.get(`/task/${taskId}/metrics`);
+            const responseData = response as any;
+            if (responseData.success && responseData.data) {
+                return responseData.data;
+            }
+            throw new Error(responseData.errorMsg || '获取任务指标失败');
+        } catch (error) {
+            console.error('获取任务指标失败:', error);
             throw error;
         }
     }
