@@ -161,7 +161,22 @@ func (p *PreLoadBpfSkeleton) LoadAndAttach() (*BpfSkeleton, map[string]meta.Prog
 
 		links = append(links, link)
 
+		progInfo, err := prog.Info()
+		if err != nil {
+			err := fmt.Errorf("get program info error: %w", err)
+			progAttachStatus[progMeta.Name] = genAttachErr(status, err)
+			return nil, progAttachStatus, err
+		}
+
+		id, ok := progInfo.ID()
+		if !ok {
+			err := fmt.Errorf("get program id error: %w", err)
+			progAttachStatus[progMeta.Name] = genAttachErr(status, err)
+			return nil, progAttachStatus, err
+		}
+
 		status.Status = meta.TaskStatusSuccess
+		status.AttachID = uint32(id)
 		progAttachStatus[progMeta.Name] = status
 	}
 

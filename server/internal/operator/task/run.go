@@ -17,14 +17,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// RunningTask 表示正在运行的任务
-type RunningTask struct {
-	Task       *models.Task
-	CancelFunc context.CancelFunc
-	Logger     *zap.Logger
-	BPFLoader  *loader.BPFLoader
-}
-
 // CreateAndRunTask 创建并运行任务
 func (o *Operator) CreateAndRunTask(component *models.Component) (*models.Task, error) {
 	// 创建任务记录
@@ -94,7 +86,7 @@ func (o *Operator) RunComponentAsync(task *models.Task, component *models.Compon
 	}
 
 	// 创建并存储运行中的任务
-	runningTask := &RunningTask{
+	runningTask := &models.RunningTask{
 		Task:       task,
 		CancelFunc: cancel,
 		Logger:     logger,
@@ -271,7 +263,7 @@ func (o *Operator) StopTask(taskID uint64) error {
 	if !exists {
 		return errors.New("任务不存在或已停止")
 	}
-	runningTask.(*RunningTask).CancelFunc()
+	runningTask.(*models.RunningTask).CancelFunc()
 	return nil
 }
 
@@ -279,7 +271,7 @@ func (o *Operator) StopTask(taskID uint64) error {
 func (o *Operator) GetRunningTasks() []*models.Task {
 	runningTasks := make([]*models.Task, 0)
 	cache.TaskRunningStore.Range(func(key, value any) bool {
-		runningTasks = append(runningTasks, value.(*RunningTask).Task)
+		runningTasks = append(runningTasks, value.(*models.RunningTask).Task)
 		return true
 	})
 	return runningTasks

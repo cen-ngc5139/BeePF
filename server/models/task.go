@@ -1,9 +1,12 @@
 package models
 
 import (
+	"context"
 	"time"
 
+	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type Task struct {
@@ -47,6 +50,7 @@ type ComProgStatus struct {
 	ComponentName string     `json:"component_name"`
 	ProgramID     uint64     `json:"program_id"`
 	ProgramName   string     `json:"program_name"`
+	AttachID      uint32     `json:"attach_id"`
 	Status        TaskStatus `json:"status"`
 	Error         string     `json:"error"`
 	CreatedAt     time.Time  `json:"created_at"`
@@ -63,4 +67,12 @@ func (t *Task) Validate() error {
 	}
 
 	return nil
+}
+
+// RunningTask 表示正在运行的任务
+type RunningTask struct {
+	Task       *Task
+	CancelFunc context.CancelFunc
+	Logger     *zap.Logger
+	BPFLoader  *loader.BPFLoader
 }

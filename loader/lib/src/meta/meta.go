@@ -364,6 +364,7 @@ const (
 // prog attach status
 type ProgAttachStatus struct {
 	ProgName string     `json:"prog_name"`
+	AttachID uint32     `json:"attach_id"`
 	Status   TaskStatus `json:"status"`
 	Error    string     `json:"error"`
 }

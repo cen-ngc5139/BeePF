@@ -38,6 +38,7 @@ func NewServer(middleware ...gin.HandlerFunc) *Server {
 	r.GET("/ping", Ping)
 
 	InitProbe(r)
+	InitPrometheusMetrics(r)
 	pprof.Register(r, "pprof")
 
 	r.Use(middleware...)

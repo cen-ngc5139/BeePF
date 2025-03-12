@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS `beepf`.`task_program_status` (
   `component_name` VARCHAR(255) NOT NULL COMMENT '组件名称',
   `program_id` BIGINT UNSIGNED NOT NULL COMMENT '程序ID',
   `program_name` VARCHAR(255) NOT NULL COMMENT '程序名称',
+  `attach_id` BIGINT UNSIGNED NOT NULL COMMENT '挂载ID',
   `status` INT NOT NULL COMMENT '状态: 0-等待中, 1-运行中, 2-成功, 3-失败',
   `error` TEXT NULL COMMENT '错误信息',
   `deleted` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除: 0-否, 1-是',
