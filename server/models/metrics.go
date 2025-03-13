@@ -3,8 +3,9 @@ package models
 import "time"
 
 type MetricPoint struct {
-	Timestamp time.Time `json:"timestamp"`
-	Value     float64   `json:"value"`
+	Timestamp   time.Time `json:"timestamp"`
+	Value       float64   `json:"value"`
+	ProgramName string    `json:"program_name"`
 }
 
 type TaskMetrics struct {

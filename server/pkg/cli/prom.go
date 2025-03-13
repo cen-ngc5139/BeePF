@@ -33,7 +33,7 @@ func NewPromClient(address string) (*PromClient, error) {
 }
 
 // RangeQuery 执行范围查询
-func (c *PromClient) RangeQuery(query string, start, end time.Time, step time.Duration) ([]models.MetricPoint, error) {
+func (c *PromClient) RangeQuery(query string, start, end time.Time, step time.Duration, programName string) ([]models.MetricPoint, error) {
 	ctx := context.Background()
 	result, warnings, err := c.api.QueryRange(ctx, query, v1.Range{
 		Start: start,
@@ -53,8 +53,9 @@ func (c *PromClient) RangeQuery(query string, start, end time.Time, step time.Du
 		points := make([]models.MetricPoint, len(matrix[0].Values))
 		for i, sample := range matrix[0].Values {
 			points[i] = models.MetricPoint{
-				Timestamp: sample.Timestamp.Time(),
-				Value:     float64(sample.Value),
+				Timestamp:   sample.Timestamp.Time(),
+				Value:       float64(sample.Value),
+				ProgramName: programName,
 			}
 		}
 		return points, nil

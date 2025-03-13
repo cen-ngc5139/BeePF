@@ -17,10 +17,12 @@ import {
     Statistic,
     Tabs
 } from 'antd';
-import { Line } from '@ant-design/plots';
 import { ArrowLeftOutlined, StopOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import taskService, { Task, ProgStatus } from '../../services/taskService';
 import type { TableProps } from 'antd';
+
+// 导入 @ant-design/plots 而不是 @antv/g2plot
+import { Line } from '@ant-design/plots';
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
@@ -54,6 +56,7 @@ const getTaskStepDescription = (step: number): string => {
 interface MetricPoint {
     timestamp: string;
     value: number;
+    program_name?: string;
 }
 
 interface TaskMetrics {
@@ -214,117 +217,69 @@ const TaskDetail = () => {
         },
     ];
 
-    // 渲染指标图表
-    const renderMetricsChart = (data: MetricPoint[], title: string, yAxisLabel: string) => {
-        // 过滤掉值为null的数据点并转换数据格式
-        const validData = data
+    // 处理指标数据
+    const processMetricData = (data: MetricPoint[]) => {
+        return data
             .filter(point => point.value !== null && point.value !== undefined)
             .map(point => {
                 // 确保时间戳是有效的日期对象
-                const timestamp = new Date(point.timestamp);
+                let timestamp: Date;
+                if (typeof point.timestamp === 'string') {
+                    // 尝试直接解析字符串日期
+                    timestamp = new Date(point.timestamp);
+
+                    // 如果解析失败，尝试将字符串转换为数字再解析
+                    if (isNaN(timestamp.getTime())) {
+                        const numericTimestamp = parseInt(point.timestamp);
+                        // 检查是否为秒级时间戳（长度约为10位）
+                        if (numericTimestamp.toString().length <= 10) {
+                            timestamp = new Date(numericTimestamp * 1000);
+                        } else {
+                            timestamp = new Date(numericTimestamp);
+                        }
+                    }
+                } else {
+                    timestamp = new Date(point.timestamp);
+                }
+
+                // 格式化日期显示
+                const formattedTime = isNaN(timestamp.getTime())
+                    ? '无效日期'
+                    : `${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}:${timestamp.getSeconds().toString().padStart(2, '0')}`;
+
                 return {
-                    date: timestamp.getTime(), // 使用时间戳数值而不是字符串
+                    date: formattedTime,
                     value: point.value,
-                    category: title
+                    program_name: point.program_name || '默认',
+                    rawTimestamp: timestamp.getTime() // 用于排序
                 };
             })
-            .filter(item => !isNaN(item.date)); // 过滤掉无效日期
+            .sort((a, b) => a.rawTimestamp - b.rawTimestamp);
+    };
 
-        // 获取最新值和平均值
-        const latestValue = validData.length > 0 ? validData[validData.length - 1].value : 0;
-        const avgValue = validData.length > 0
-            ? validData.reduce((sum, item) => sum + item.value, 0) / validData.length
-            : 0;
+    // 渲染指标图表
+    const renderMetricsChart = (data: MetricPoint[], title: string, yAxisLabel: string) => {
+        const validData = processMetricData(data);
 
         return (
             <Card
                 title={title}
                 style={{ marginBottom: 16 }}
-                extra={
-                    <Space>
-                        <Statistic
-                            title="当前值"
-                            value={latestValue}
-                            precision={yAxisLabel === '百分比' ? 4 : 0}
-                            style={{ marginRight: 16 }}
-                            valueStyle={{ fontSize: '14px' }}
-                        />
-                        <Statistic
-                            title="平均值"
-                            value={avgValue}
-                            precision={yAxisLabel === '百分比' ? 4 : 0}
-                            valueStyle={{ fontSize: '14px' }}
-                        />
-                    </Space>
-                }
             >
                 <div style={{ height: 200 }}>
                     {validData.length > 0 ? (
                         <Line
                             data={validData}
                             xField="date"
-                            yField="value"
-                            seriesField="category"
                             xAxis={{
                                 type: 'time',
-                                tickCount: 5,
-                                label: {
-                                    formatter: (v: string | number) => {
-                                        const date = new Date(typeof v === 'string' ? parseInt(v) : v);
-                                        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-                                    }
-                                }
                             }}
-                            yAxis={{
-                                label: {
-                                    formatter: (v: string) => {
-                                        if (yAxisLabel === '百分比') {
-                                            return `${(parseFloat(v) * 100).toFixed(2)}%`;
-                                        }
-                                        return v;
-                                    }
-                                }
-                            }}
-                            tooltip={{
-                                formatter: (datum: { date: number, value: number, category: string }) => {
-                                    let displayValue: string;
-                                    if (yAxisLabel === '百分比') {
-                                        displayValue = `${(datum.value * 100).toFixed(2)}%`;
-                                    } else if (yAxisLabel === '纳秒') {
-                                        displayValue = `${datum.value.toLocaleString()} ns`;
-                                    } else {
-                                        displayValue = datum.value.toLocaleString();
-                                    }
-
-                                    const date = new Date(datum.date);
-                                    const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-
-                                    return {
-                                        name: title,
-                                        value: displayValue,
-                                        title: timeStr
-                                    };
-                                }
-                            }}
+                            colorField="program_name"
+                            yField="value"
+                            seriesField="program_name"
                             smooth={true}
                             animation={false}
-                            lineStyle={{
-                                lineWidth: 2,
-                            }}
-                            point={{
-                                size: 3,
-                                shape: 'circle',
-                                style: {
-                                    fill: '#5B8FF9',
-                                    stroke: '#fff',
-                                    lineWidth: 1,
-                                },
-                            }}
-                            color="#5B8FF9"
-                            areaStyle={{
-                                fill: 'l(270) 0:#ffffff 0.5:#5B8FF9 1:#5B8FF9',
-                                fillOpacity: 0.2,
-                            }}
+
                         />
                     ) : (
                         <div style={{ height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -342,7 +297,6 @@ const TaskDetail = () => {
 
         return (
             <>
-                <Divider orientation="left">性能指标</Divider>
                 <Spin spinning={metricsLoading}>
                     <Row gutter={[16, 16]}>
                         <Col span={12}>

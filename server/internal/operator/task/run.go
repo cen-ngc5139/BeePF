@@ -304,6 +304,29 @@ func (o *Operator) GetRunningTasks() []*models.Task {
 }
 
 func (o *Operator) GetTaskMetrics(taskID uint64) (*models.TaskMetrics, error) {
+	task, err := o.TaskStore.GetTask(taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	metrics := &models.TaskMetrics{}
+	for _, v := range task.ProgStatus {
+		progMetrics, err := QueryProgramMetrics(taskID, v.ProgramID, v.ProgramName)
+		if err != nil {
+			return nil, err
+		}
+
+		metrics.AvgRunTimeNS = append(metrics.AvgRunTimeNS, progMetrics.AvgRunTimeNS...)
+		metrics.CPUUsage = append(metrics.CPUUsage, progMetrics.CPUUsage...)
+		metrics.EventsPerSecond = append(metrics.EventsPerSecond, progMetrics.EventsPerSecond...)
+		metrics.PeriodNS = append(metrics.PeriodNS, progMetrics.PeriodNS...)
+		metrics.TotalAvgRunTimeNS = append(metrics.TotalAvgRunTimeNS, progMetrics.TotalAvgRunTimeNS...)
+	}
+
+	return metrics, nil
+}
+
+func QueryProgramMetrics(taskID uint64, programID uint64, programName string) (*models.TaskMetrics, error) {
 	metrics := &models.TaskMetrics{}
 	promClient, err := cli.NewPromClient(conf.Config().Metrics.PrometheusHost)
 	if err != nil {
@@ -311,8 +334,8 @@ func (o *Operator) GetTaskMetrics(taskID uint64) (*models.TaskMetrics, error) {
 	}
 
 	for _, m := range TaskStatsPrometheusQuery {
-		query := fmt.Sprintf("%s{task_id=\"%d\"}", m, taskID)
-		points, err := promClient.RangeQuery(query, time.Now().Add(-time.Hour*1), time.Now(), time.Minute*1)
+		query := fmt.Sprintf("%s{task_id=\"%d\",program_id=\"%d\"}", m, taskID, programID)
+		points, err := promClient.RangeQuery(query, time.Now().Add(-time.Minute*10), time.Now(), time.Minute*1, programName)
 		if err != nil {
 			return nil, err
 		}

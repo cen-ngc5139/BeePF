@@ -92,7 +92,7 @@ func (m *TaskMetrics) UpdateMetricsFromCache(nodeName string) {
 			}
 
 			componentID := fmt.Sprintf("%d", task.Task.ComponentID)
-			programID := fmt.Sprintf("%d", v.ID)
+			programID := fmt.Sprintf("%d", v.ProgramID)
 			m.TaskStats.TaskCPUUsage.WithLabelValues(taskID, componentID, programID, nodeName).Set(programStats.CPUTimePercent)
 			m.TaskStats.TaskEventsPerSecond.WithLabelValues(taskID, componentID, programID, nodeName).Set(float64(programStats.EventsPerSecond))
 			m.TaskStats.TaskAvgRunTimeNS.WithLabelValues(taskID, componentID, programID, nodeName).Set(float64(programStats.AvgRunTimeNS))
