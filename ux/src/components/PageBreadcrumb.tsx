@@ -19,6 +19,7 @@ const breadcrumbNameMap: Record<string, string> = {
     '/tasks/list': '任务列表',
     '/task': '任务详情',
     '/observability': '可观测',
+    '/observability/topo': '拓扑关系',
     '/workflow': '工作流',
 }
 

@@ -9,6 +9,7 @@ var (
 	clusterService   = &service.Cluster{}
 	componentService = &service.Component{}
 	taskService      = &service.Task{}
+	topoService      = &service.Topo{}
 )
 
 func (s *Server) initRouter() *gin.Engine {
@@ -40,6 +41,9 @@ func (s *Server) initRouter() *gin.Engine {
 		v1.GET("/task/running", taskService.Running())
 		v1.POST("/task/:taskId/stop", taskService.Stop())
 		v1.GET("/task/:taskId/metrics", taskService.Metrics())
+
+		// 可观测相关接口
+		v1.GET("/observability/topo", topoService.Topo())
 	}
 
 	return s.router

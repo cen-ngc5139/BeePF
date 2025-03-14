@@ -11,6 +11,7 @@ import {
   PlusOutlined,
   UploadOutlined,
   ScheduleOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons'
 import { BrowserRouter as Router, Route, Routes, Link, Navigate } from 'react-router-dom'
 import ComponentList from './pages/components/ComponentList'
@@ -20,6 +21,7 @@ import ClusterList from './pages/clusters/ClusterList'
 import CreateCluster from './pages/clusters/CreateCluster'
 import TaskList from './pages/tasks/TaskList'
 import TaskDetail from './pages/tasks/TaskDetail'
+import TopologyPage from './pages/observability/Topology'
 import PageBreadcrumb from './components/PageBreadcrumb'
 
 const { Header, Sider, Content } = Layout
@@ -93,9 +95,16 @@ function App() {
                 ],
               },
               {
-                key: '3',
+                key: 'observability',
                 icon: <LineChartOutlined />,
-                label: <Link to="/observability">可观测</Link>,
+                label: '可观测',
+                children: [
+                  {
+                    key: 'observability-topo',
+                    icon: <ApartmentOutlined />,
+                    label: <Link to="/observability/topo">拓扑关系</Link>,
+                  },
+                ],
               },
               {
                 key: '4',
@@ -150,7 +159,8 @@ function App() {
               <Route path="/component/:id" element={<ComponentDetail />} />
               <Route path="/tasks/list" element={<TaskList />} />
               <Route path="/task/:taskId" element={<TaskDetail />} />
-              <Route path="/observability" element={<div>可观测</div>} />
+              <Route path="/observability" element={<Navigate to="/observability/topo" replace />} />
+              <Route path="/observability/topo" element={<TopologyPage />} />
               <Route path="/workflow" element={<div>工作流</div>} />
             </Routes>
           </Content>
