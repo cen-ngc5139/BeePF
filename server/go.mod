@@ -1,6 +1,7 @@
 module github.com/cen-ngc5139/BeePF/server
 
 go 1.22
+
 toolchain go1.24.1
 
 require (

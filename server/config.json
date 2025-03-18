@@ -10,13 +10,13 @@
     "type": "mysql",
     "user": "root",
     "password": "jjkcs123",
-    "host": "192.168.100.200",
+    "host": "beepf-mysql",
     "name": "beepf",
     "max_idle": 10,
     "max_open": 100,
     "log_mode": "debug"
   },
   "metrics": {
-    "prometheusHost": "http://192.168.200.200:9090"
+    "prometheusHost": "http://beepf-prometheus:9090"
   }
 }
