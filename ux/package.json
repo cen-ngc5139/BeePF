@@ -17,7 +17,7 @@
     "@antv/g6": "^4.8.23",
     "@types/react-monaco-editor": "^0.10.1",
     "antd": "^5.24.2",
-    "axios": "^1.8.1",
+    "axios": "^1.8.2",
     "dagre": "^0.8.5",
     "monaco-editor": "^0.52.2",
     "react": "^19.0.0",
