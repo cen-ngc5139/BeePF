@@ -66,7 +66,7 @@ func (p *ProgMeta) attachTracing(program *ebpf.Program) (link.Link, error) {
 func (p *ProgMeta) attachKprobe(program *ebpf.Program) (link.Link, error) {
 	// Prepare kprobe_events line parameters
 	var err error
-	funcName := p.Name
+	funcName := p.Attach
 	isRet := false
 	if strings.HasPrefix(p.Attach, "kretprobe/") {
 		isRet = true

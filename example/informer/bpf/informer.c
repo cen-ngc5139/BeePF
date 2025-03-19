@@ -1,6 +1,10 @@
 #include <vmlinux.h>
 #include <vmlinux-x86.h>
 #include "bpf/bpf_helpers.h"
+#include "bpf/bpf_core_read.h"
+#include "bpf/bpf_tracing.h"
+#include "bpf/bpf_endian.h"
+#include "bpf/bpf_ipv6.h"
 
 char LICENSE[] SEC("license") = "GPL";
 
@@ -197,38 +201,70 @@ struct syscalls_enter_close_args
     __u64 fd;
 };
 
-SEC("tracepoint/syscalls/sys_enter_close")
-int trace_close(struct syscalls_enter_close_args *ctx)
+// SEC("tracepoint/syscalls/sys_enter_close")
+// int trace_close(struct syscalls_enter_close_args *ctx)
+// {
+//     __u32 pid = bpf_get_current_pid_tgid() >> 32;
+//     __u32 fd = ctx->fd;
+
+//     bpf_printk("pid: %d, close fd: %d\n", pid, fd);
+//     // 查找这个 fd 是否对应 BPF 对象
+//     __u64 key = make_key(pid, fd);
+//     struct bpf_obj_info_t *info = bpf_map_lookup_elem(&fd_bpf_map, &key);
+
+//     if (info)
+//     {
+//         // 根据对象类型记录释放事件
+//         if (info->obj_type == OBJ_TYPE_PROG)
+//         {
+//             bpf_printk("BPF Program released: PID=%d, FD=%d, proc=%s\n",
+//                        pid, fd, info->comm);
+//         }
+//         else if (info->obj_type == OBJ_TYPE_MAP)
+//         {
+//             bpf_printk("BPF Map released: PID=%d, FD=%d, proc=%s\n",
+//                        pid, fd, info->comm);
+//         }
+//         else if (info->obj_type == OBJ_TYPE_LINK)
+//         {
+//             bpf_printk("BPF Link released: PID=%d, FD=%d, proc=%s\n",
+//                        pid, fd, info->comm);
+//         }
+
+//         // 从映射中删除这个 fd
+//         bpf_map_delete_elem(&fd_bpf_map, &key);
+//     }
+
+//     return 0;
+// }
+
+SEC("kprobe/filp_close")
+int filp_close(struct pt_regs *ctx)
 {
     __u32 pid = bpf_get_current_pid_tgid() >> 32;
-    __u32 fd = ctx->fd;
+    char comm[16];
+    bpf_get_current_comm(&comm, sizeof(comm));
 
-    bpf_printk("pid: %d, close fd: %d\n", pid, fd);
-    // 查找这个 fd 是否对应 BPF 对象
-    __u64 key = make_key(pid, fd);
-    struct bpf_obj_info_t *info = bpf_map_lookup_elem(&fd_bpf_map, &key);
+    // 获取 file 结构体指针（第一个参数）
+    struct file *file;
+    file = (struct file *)PT_REGS_PARM1(ctx);
 
-    if (info)
+    // 读取文件名
+    char filename[256] = {0};
+    struct dentry *dentry;
+    const unsigned char *name;
+
+    // 安全地读取内核内存
+    bpf_probe_read_kernel(&dentry, sizeof(dentry), &file->f_path.dentry);
+    if (dentry)
     {
-        // 根据对象类型记录释放事件
-        if (info->obj_type == OBJ_TYPE_PROG)
+        bpf_probe_read_kernel(&name, sizeof(name), &dentry->d_name.name);
+        if (name)
         {
-            bpf_printk("BPF Program released: PID=%d, FD=%d, proc=%s\n",
-                       pid, fd, info->comm);
+            bpf_probe_read_kernel_str(filename, sizeof(filename), name);
+            bpf_printk("comm=%-16s pid=%-6d filename=%s\n",
+                       comm, pid, filename);
         }
-        else if (info->obj_type == OBJ_TYPE_MAP)
-        {
-            bpf_printk("BPF Map released: PID=%d, FD=%d, proc=%s\n",
-                       pid, fd, info->comm);
-        }
-        else if (info->obj_type == OBJ_TYPE_LINK)
-        {
-            bpf_printk("BPF Link released: PID=%d, FD=%d, proc=%s\n",
-                       pid, fd, info->comm);
-        }
-
-        // 从映射中删除这个 fd
-        bpf_map_delete_elem(&fd_bpf_map, &key);
     }
 
     return 0;
