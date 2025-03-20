@@ -7,7 +7,6 @@ import (
 	"time"
 
 	meta "github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/metrics"
 
 	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
 	"go.uber.org/zap"
@@ -28,12 +27,7 @@ func main() {
 		ObjectPath:  "./binary/informer_x86_bpfel.o",
 		Logger:      logger,
 		PollTimeout: 100 * time.Millisecond,
-		Properties: meta.Properties{
-			Stats: &meta.Stats{
-				Interval: 1 * time.Second,
-				Handler:  metrics.NewDefaultHandler(logger),
-			},
-		},
+		Properties:  meta.Properties{},
 	}
 
 	bpfLoader := loader.NewBPFLoader(config)

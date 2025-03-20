@@ -372,6 +372,11 @@ func (l *BPFLoader) Stats() error {
 }
 
 func (l *BPFLoader) Metrics() error {
+	if l.StatsCollector == nil {
+		l.Logger.Info("stats collector is not enabled")
+		return nil
+	}
+
 	return l.StatsCollector.Export()
 }
 

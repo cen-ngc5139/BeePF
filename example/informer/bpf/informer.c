@@ -47,6 +47,22 @@ struct
     __type(value, struct bpf_prog_state);
 } prog_states SEC(".maps");
 
+// 定义复合键结构
+struct pid_func_key
+{
+    __u32 pid;
+    char func_name[16]; // 函数名最大长度
+};
+
+// 定义 pid + funcname 的映射
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 10000);
+    __type(key, struct pid_func_key);
+    __type(value, struct bpf_prog_state);
+} pid_func_name_states SEC(".maps");
+
 // 辅助函数: 发送事件到 ringbuffer
 static int send_event(__u32 event_type, struct bpf_prog_state *state)
 {
@@ -69,11 +85,11 @@ static int send_event(__u32 event_type, struct bpf_prog_state *state)
 }
 
 // kprobe 处理函数：监控程序加载
-SEC("kprobe/bpf_prog_attach_check_attach_type")
-int BPF_KPROBE(trace_bpf_prog_attach_check_attach_type)
+SEC("kprobe/bpf_prog_kallsyms_add")
+int BPF_KPROBE(trace_bpf_prog_kallsyms_add)
 {
     // 获取返回的 bpf_prog 指针
-    struct bpf_prog *prog = (struct bpf_prog *)PT_REGS_RC(ctx);
+    struct bpf_prog *prog = (struct bpf_prog *)PT_REGS_PARM1(ctx);
     if (!prog)
         return 0;
 
@@ -96,9 +112,18 @@ int BPF_KPROBE(trace_bpf_prog_attach_check_attach_type)
     if (state.prog_id == 0)
         return 0;
 
+    char func_name[16];
+    bpf_probe_read_kernel(&func_name, sizeof(func_name), &aux->name);
+    if (func_name == NULL)
+        return 0;
+
+    struct pid_func_key key = {0};
+    key.pid = state.pid;
+    __builtin_memcpy(key.func_name, func_name, sizeof(func_name));
+
     // 检查是否存在，确定是ADD还是UPDATE
     struct bpf_prog_state *existing;
-    existing = bpf_map_lookup_elem(&prog_states, &state.prog_id);
+    existing = bpf_map_lookup_elem(&pid_func_name_states, &key);
 
     __u32 event_type;
     if (existing)
@@ -112,55 +137,56 @@ int BPF_KPROBE(trace_bpf_prog_attach_check_attach_type)
 
     // 更新程序状态map
     bpf_map_update_elem(&prog_states, &state.prog_id, &state, BPF_ANY);
+    bpf_map_update_elem(&pid_func_name_states, &key, &state, BPF_ANY);
 
     // 发送事件到ringbuffer
     send_event(event_type, &state);
 
     // 打印基本信息
-    bpf_printk("BPF program %s: id=%u pid=%d comm=%s\n",
+    bpf_printk("BPF program %s: id=%u pid=%d comm=%s func_name=%s\n",
                event_type == EVENT_TYPE_ADD ? "loaded" : "updated",
-               state.prog_id, state.pid, state.comm);
+               state.prog_id, state.pid, state.comm, func_name);
 
     return 0;
 }
 
 // kprobe 处理函数：监控程序释放
-SEC("kprobe/bpf_prog_put")
-int BPF_KPROBE(trace_bpf_prog_free)
+SEC("kprobe/bpf_prog_kallsyms_del_all")
+int BPF_KPROBE(trace_bpf_prog_put)
 {
+    __u32 pid = bpf_get_current_pid_tgid() >> 32;
+    char comm[16];
+    bpf_get_current_comm(&comm, sizeof(comm));
+
     struct bpf_prog *prog;
     prog = (struct bpf_prog *)PT_REGS_PARM1(ctx);
     if (!prog)
+    {
+        bpf_printk("fail to get bpf_prog: pid=%u comm=%s\n", pid, comm);
         return 0;
+    }
 
     // 读取程序信息
     struct bpf_prog_aux *aux;
     bpf_probe_read_kernel(&aux, sizeof(aux), &prog->aux);
     if (!aux)
+    {
+        bpf_printk("fail to get bpf_prog_aux: pid=%u comm=%s\n", pid, comm);
         return 0;
+    }
 
-    // 读取程序ID
-    __u32 prog_id = 0;
-    bpf_probe_read_kernel(&prog_id, sizeof(prog_id), &aux->id);
-    if (prog_id == 0)
-        return 0;
+    char func_name[16];
+    bpf_probe_read_kernel(&func_name, sizeof(func_name), &aux->name);
 
     // 尝试从状态map中查找
     struct bpf_prog_state *state;
-    state = bpf_map_lookup_elem(&prog_states, &prog_id);
+    struct pid_func_key key = {0};
+    key.pid = pid;
+    __builtin_memcpy(key.func_name, func_name, sizeof(func_name));
+    state = bpf_map_lookup_elem(&pid_func_name_states, &key);
     if (!state)
     {
-        // 如果不存在，可能是我们没有跟踪到加载过程
-        // 创建一个基本状态
-        struct bpf_prog_state new_state = {0};
-        new_state.prog_id = prog_id;
-        new_state.pid = bpf_get_current_pid_tgid() >> 32;
-        bpf_get_current_comm(&new_state.comm, sizeof(new_state.comm));
-
-        // 发送删除事件
-        send_event(EVENT_TYPE_DELETE, &new_state);
-
-        bpf_printk("BPF program deleted (unknown load): id=%u\n", prog_id);
+        bpf_printk("BPF program deleted (unknown load): id=%u\n", state->prog_id);
         return 0;
     }
 
@@ -180,21 +206,11 @@ int BPF_KPROBE(trace_bpf_prog_free)
         send_event(EVENT_TYPE_DELETE, &updated_state);
 
         // 从map中删除
-        bpf_map_delete_elem(&prog_states, &prog_id);
+        bpf_map_delete_elem(&prog_states, &state->prog_id);
+        bpf_map_delete_elem(&pid_func_name_states, &key);
 
         bpf_printk("BPF program deleted: id=%u\n",
-                   prog_id);
-    }
-    else
-    {
-        // 更新状态map
-        bpf_map_delete_elem(&prog_states, &prog_id);
-
-        // 发送更新事件
-        send_event(EVENT_TYPE_DELETE, &updated_state);
-
-        bpf_printk("BPF program deleted (put): id=%u refcount=%d\n",
-                   prog_id, count);
+                   state->prog_id);
     }
 
     return 0;
