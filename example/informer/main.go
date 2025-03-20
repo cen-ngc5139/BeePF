@@ -14,7 +14,7 @@ import (
 )
 
 //go:generate sh -c "echo Generating for $TARGET_GOARCH"
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -type bpf_obj_info_t -target $TARGET_GOARCH -go-package binary -output-dir ./binary -cc clang -no-strip informer ./bpf/informer.c -- -I../headers -Wno-address-of-packed-member
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -type bpf_prog_state -target $TARGET_GOARCH -go-package binary -output-dir ./binary -cc clang -no-strip informer ./bpf/informer.c -- -I../headers -Wno-address-of-packed-member
 
 func main() {
 	// 初始化日志

@@ -66,7 +66,12 @@ func (p *ProgMeta) attachTracing(program *ebpf.Program) (link.Link, error) {
 func (p *ProgMeta) attachKprobe(program *ebpf.Program) (link.Link, error) {
 	// Prepare kprobe_events line parameters
 	var err error
-	funcName := p.Attach
+	attachPoint := strings.SplitN(p.Attach, "/", 2)
+	if len(attachPoint) != 2 {
+		return nil, fmt.Errorf("invalid attach point: %s", p.Attach)
+	}
+	funcName := attachPoint[1]
+
 	isRet := false
 	if strings.HasPrefix(p.Attach, "kretprobe/") {
 		isRet = true

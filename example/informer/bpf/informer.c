@@ -8,263 +8,193 @@
 
 char LICENSE[] SEC("license") = "GPL";
 
-// 定义 BPF 命令常量
-#define BPF_PROG_LOAD 5
-#define BPF_MAP_CREATE 0
-#define BPF_PROG_ATTACH 8
-#define BPF_PROG_DETACH 9
-#define BPF_LINK_CREATE 18
-#define BPF_LINK_DETACH 26
-#define BPF_OBJ_PIN 6
-#define BPF_OBJ_GET 7
+// 事件类型定义
+#define EVENT_TYPE_ADD 1    // 程序加载
+#define EVENT_TYPE_UPDATE 2 // 程序更新
+#define EVENT_TYPE_DELETE 3 // 程序卸载
 
-// 对象类型常量
-#define OBJ_TYPE_PROG 1
-#define OBJ_TYPE_MAP 2
-#define OBJ_TYPE_LINK 3
-
-// 新的结构体，用于存储 BPF 对象信息（包括 prog 和 map）
-struct bpf_obj_info_t
+// 程序状态结构
+struct bpf_prog_state
 {
-    __u32 obj_type;  // 1: prog, 2: map, 3: link 等
-    __u32 pid;       // 进程 ID
-    __u32 cmd;       // BPF 命令
-    __s32 fd;        // 文件描述符
-    __u32 id;        // 对象 ID
-    __u64 timestamp; // 时间戳
-    char comm[16];   // 进程名
+    __u32 prog_id;   // 程序ID
+    __u64 load_time; // 加载时间
+    char comm[16];   // 加载程序的进程名
+    __u32 pid;       // 加载程序的进程ID
 };
 
-// 新增: 使用组合键 (pid + command) 来存储进行中的 BPF 操作
+struct bpf_prog_state *unused_bpf_prog_state __attribute__((unused));
+
+// 发送到 ringbuffer 的事件结构
+struct bpf_prog_event
+{
+    __u32 event_type;            // 事件类型(ADD/UPDATE/DELETE)
+    struct bpf_prog_state state; // 程序状态
+};
+
+// 定义 ringbuffer map
+struct
+{
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 1 << 24); // 16MB
+} events SEC(".maps");
+
+// 定义程序状态跟踪 hash map (prog_id -> state)
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
     __uint(max_entries, 10000);
-    __type(key, __u64); // pid 和 cmd 的组合键
-    __type(value, struct bpf_obj_info_t);
-} pending_bpf_ops SEC(".maps");
+    __type(key, __u32);
+    __type(value, struct bpf_prog_state);
+} prog_states SEC(".maps");
 
-// 新增: 使用 fd 来跟踪 BPF 对象
-struct
+// 辅助函数: 发送事件到 ringbuffer
+static int send_event(__u32 event_type, struct bpf_prog_state *state)
 {
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __uint(max_entries, 10000);
-    __type(key, __u64); // pid 和 fd 的组合键
-    __type(value, struct bpf_obj_info_t);
-} fd_bpf_map SEC(".maps");
+    struct bpf_prog_event *event;
 
-// 修改后的结构体，匹配 tracepoint 格式
-struct syscalls_enter_bpf_args
-{
-    __u16 common_type;
-    __u8 common_flags;
-    __u8 common_preempt_count;
-    __s32 common_pid;
+    // 从 ringbuffer 分配内存
+    event = bpf_ringbuf_reserve(&events, sizeof(*event), 0);
+    if (!event)
+    {
+        return -1;
+    }
 
-    __s32 __syscall_nr;
-    __u64 cmd;   // 注意：size 从 4 改为 8
-    __u64 uattr; // 用户空间指针，改名为 uattr
-    __u64 size;  // 注意：size 从 4 改为 8
-};
+    // 填充事件信息
+    event->event_type = event_type;
+    __builtin_memcpy(&event->state, state, sizeof(*state));
 
-// 在 BPF 系统调用出口处记录 fd
-struct trace_event_sys_exit
-{
-    __u16 common_type;
-    __u8 common_flags;
-    __u8 common_preempt_count;
-    __s32 common_pid;
-
-    __s32 __syscall_nr;
-    __s64 ret;
-};
-
-// 创建组合键函数
-static inline __u64 make_key(__u32 pid, __u32 cmd_or_fd)
-{
-    return ((__u64)pid << 32) | cmd_or_fd;
+    // 提交事件
+    bpf_ringbuf_submit(event, 0);
+    return 0;
 }
 
-SEC("tracepoint/syscalls/sys_enter_bpf")
-int trace_bpf_syscall(struct syscalls_enter_bpf_args *ctx)
+// kprobe 处理函数：监控程序加载
+SEC("kprobe/bpf_prog_attach_check_attach_type")
+int BPF_KPROBE(trace_bpf_prog_attach_check_attach_type)
 {
-    __u32 pid = bpf_get_current_pid_tgid() >> 32;
-    __u32 cmd = ctx->cmd;
-    __u32 obj_type = 0;
+    // 获取返回的 bpf_prog 指针
+    struct bpf_prog *prog = (struct bpf_prog *)PT_REGS_RC(ctx);
+    if (!prog)
+        return 0;
 
-    // 只处理我们关心的命令
-    switch (cmd)
+    // 准备程序状态结构
+    struct bpf_prog_state state = {0};
+
+    // 获取当前进程信息
+    state.pid = bpf_get_current_pid_tgid() >> 32;
+    bpf_get_current_comm(&state.comm, sizeof(state.comm));
+    state.load_time = bpf_ktime_get_ns();
+
+    // 获取 aux 指针以读取 id
+    struct bpf_prog_aux *aux;
+    bpf_probe_read_kernel(&aux, sizeof(aux), &prog->aux);
+    if (!aux)
+        return 0;
+
+    // 读取程序 ID
+    bpf_probe_read_kernel(&state.prog_id, sizeof(state.prog_id), &aux->id);
+    if (state.prog_id == 0)
+        return 0;
+
+    // 检查是否存在，确定是ADD还是UPDATE
+    struct bpf_prog_state *existing;
+    existing = bpf_map_lookup_elem(&prog_states, &state.prog_id);
+
+    __u32 event_type;
+    if (existing)
     {
-    case BPF_PROG_LOAD:
-        obj_type = OBJ_TYPE_PROG;
-        bpf_printk("BPF Program Load by PID: %d\n", pid);
-        break;
-    case BPF_MAP_CREATE:
-        obj_type = OBJ_TYPE_MAP;
-        bpf_printk("BPF Map Create by PID: %d\n", pid);
-        break;
-    case BPF_LINK_CREATE:
-        obj_type = OBJ_TYPE_LINK;
-        bpf_printk("BPF Link Create by PID: %d\n", pid);
-        break;
-    default:
-        // 其他命令我们不关心
+        event_type = EVENT_TYPE_UPDATE;
+    }
+    else
+    {
+        event_type = EVENT_TYPE_ADD;
+    }
+
+    // 更新程序状态map
+    bpf_map_update_elem(&prog_states, &state.prog_id, &state, BPF_ANY);
+
+    // 发送事件到ringbuffer
+    send_event(event_type, &state);
+
+    // 打印基本信息
+    bpf_printk("BPF program %s: id=%u pid=%d comm=%s\n",
+               event_type == EVENT_TYPE_ADD ? "loaded" : "updated",
+               state.prog_id, state.pid, state.comm);
+
+    return 0;
+}
+
+// kprobe 处理函数：监控程序释放
+SEC("kprobe/bpf_prog_put")
+int BPF_KPROBE(trace_bpf_prog_free)
+{
+    struct bpf_prog *prog;
+    prog = (struct bpf_prog *)PT_REGS_PARM1(ctx);
+    if (!prog)
+        return 0;
+
+    // 读取程序信息
+    struct bpf_prog_aux *aux;
+    bpf_probe_read_kernel(&aux, sizeof(aux), &prog->aux);
+    if (!aux)
+        return 0;
+
+    // 读取程序ID
+    __u32 prog_id = 0;
+    bpf_probe_read_kernel(&prog_id, sizeof(prog_id), &aux->id);
+    if (prog_id == 0)
+        return 0;
+
+    // 尝试从状态map中查找
+    struct bpf_prog_state *state;
+    state = bpf_map_lookup_elem(&prog_states, &prog_id);
+    if (!state)
+    {
+        // 如果不存在，可能是我们没有跟踪到加载过程
+        // 创建一个基本状态
+        struct bpf_prog_state new_state = {0};
+        new_state.prog_id = prog_id;
+        new_state.pid = bpf_get_current_pid_tgid() >> 32;
+        bpf_get_current_comm(&new_state.comm, sizeof(new_state.comm));
+
+        // 发送删除事件
+        send_event(EVENT_TYPE_DELETE, &new_state);
+
+        bpf_printk("BPF program deleted (unknown load): id=%u\n", prog_id);
         return 0;
     }
 
-    // 如果是我们关心的命令，创建一个对象信息记录
-    if (obj_type > 0)
+    // 读取当前引用计数
+    atomic_t ref_cnt;
+    bpf_probe_read_kernel(&ref_cnt, sizeof(ref_cnt), &aux->refcnt);
+    int count = 0;
+    bpf_probe_read_kernel(&count, sizeof(count), &ref_cnt);
+
+    // 更新状态中的引用计数
+    struct bpf_prog_state updated_state = *state;
+
+    // 检查是否为最后一个引用（释放）
+    if (count <= 0)
     {
-        struct bpf_obj_info_t info = {};
+        // 发送删除事件
+        send_event(EVENT_TYPE_DELETE, &updated_state);
 
-        info.obj_type = obj_type;
-        info.pid = pid;
-        info.cmd = cmd;
-        info.fd = -1; // fd 将在 sys_exit_bpf 中设置
-        info.timestamp = bpf_ktime_get_ns();
-        bpf_get_current_comm(&info.comm, sizeof(info.comm));
+        // 从map中删除
+        bpf_map_delete_elem(&prog_states, &prog_id);
 
-        // 使用 pid 和 cmd 的组合键存储到 pending_bpf_ops 映射中
-        __u64 key = make_key(pid, cmd);
-        bpf_map_update_elem(&pending_bpf_ops, &key, &info, BPF_ANY);
+        bpf_printk("BPF program deleted: id=%u\n",
+                   prog_id);
     }
-
-    return 0;
-}
-
-SEC("tracepoint/syscalls/sys_exit_bpf")
-int trace_bpf_syscall_ret(struct trace_event_sys_exit *ctx)
-{
-    __s64 ret = ctx->ret;
-    __u32 pid = bpf_get_current_pid_tgid() >> 32;
-
-    // 只有当返回成功的 fd 时才处理
-    if (ret > 0)
+    else
     {
-        __s32 fd = ret;
+        // 更新状态map
+        bpf_map_delete_elem(&prog_states, &prog_id);
 
-        // 遍历所有可能的 BPF 命令来查找 pending_bpf_ops
-        __u32 cmds[] = {BPF_PROG_LOAD, BPF_MAP_CREATE, BPF_LINK_CREATE};
+        // 发送更新事件
+        send_event(EVENT_TYPE_DELETE, &updated_state);
 
-#pragma unroll
-        for (int i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++)
-        {
-            __u64 key = make_key(pid, cmds[i]);
-            struct bpf_obj_info_t *info = bpf_map_lookup_elem(&pending_bpf_ops, &key);
-
-            if (info)
-            {
-                // 找到了对应的 pending 操作
-                info->fd = fd; // 更新 fd 信息
-
-                // 创建一个新的条目存储到 fd_prog_map 中
-                __u64 fd_key = make_key(pid, fd);
-                bpf_map_update_elem(&fd_bpf_map, &fd_key, info, BPF_ANY);
-
-                // 从 pending 映射中删除此条目
-                bpf_map_delete_elem(&pending_bpf_ops, &key);
-
-                // 根据对象类型记录日志
-                if (info->obj_type == OBJ_TYPE_PROG)
-                {
-                    bpf_printk("BPF Program loaded: PID=%d, FD=%d, proc=%s\n",
-                               pid, fd, info->comm);
-                }
-                else if (info->obj_type == OBJ_TYPE_MAP)
-                {
-                    bpf_printk("BPF Map created: PID=%d, FD=%d, proc=%s\n",
-                               pid, fd, info->comm);
-                }
-                else if (info->obj_type == OBJ_TYPE_LINK)
-                {
-                    bpf_printk("BPF Link created: PID=%d, FD=%d, proc=%s\n",
-                               pid, fd, info->comm);
-                }
-
-                break; // 找到了匹配项，不需要继续循环
-            }
-        }
-    }
-
-    return 0;
-}
-
-// 跟踪 close 系统调用以检测对象释放
-struct syscalls_enter_close_args
-{
-    __u16 common_type;
-    __u8 common_flags;
-    __u8 common_preempt_count;
-    __s32 common_pid;
-
-    __s32 __syscall_nr;
-    __u64 fd;
-};
-
-// SEC("tracepoint/syscalls/sys_enter_close")
-// int trace_close(struct syscalls_enter_close_args *ctx)
-// {
-//     __u32 pid = bpf_get_current_pid_tgid() >> 32;
-//     __u32 fd = ctx->fd;
-
-//     bpf_printk("pid: %d, close fd: %d\n", pid, fd);
-//     // 查找这个 fd 是否对应 BPF 对象
-//     __u64 key = make_key(pid, fd);
-//     struct bpf_obj_info_t *info = bpf_map_lookup_elem(&fd_bpf_map, &key);
-
-//     if (info)
-//     {
-//         // 根据对象类型记录释放事件
-//         if (info->obj_type == OBJ_TYPE_PROG)
-//         {
-//             bpf_printk("BPF Program released: PID=%d, FD=%d, proc=%s\n",
-//                        pid, fd, info->comm);
-//         }
-//         else if (info->obj_type == OBJ_TYPE_MAP)
-//         {
-//             bpf_printk("BPF Map released: PID=%d, FD=%d, proc=%s\n",
-//                        pid, fd, info->comm);
-//         }
-//         else if (info->obj_type == OBJ_TYPE_LINK)
-//         {
-//             bpf_printk("BPF Link released: PID=%d, FD=%d, proc=%s\n",
-//                        pid, fd, info->comm);
-//         }
-
-//         // 从映射中删除这个 fd
-//         bpf_map_delete_elem(&fd_bpf_map, &key);
-//     }
-
-//     return 0;
-// }
-
-SEC("kprobe/filp_close")
-int filp_close(struct pt_regs *ctx)
-{
-    __u32 pid = bpf_get_current_pid_tgid() >> 32;
-    char comm[16];
-    bpf_get_current_comm(&comm, sizeof(comm));
-
-    // 获取 file 结构体指针（第一个参数）
-    struct file *file;
-    file = (struct file *)PT_REGS_PARM1(ctx);
-
-    // 读取文件名
-    char filename[256] = {0};
-    struct dentry *dentry;
-    const unsigned char *name;
-
-    // 安全地读取内核内存
-    bpf_probe_read_kernel(&dentry, sizeof(dentry), &file->f_path.dentry);
-    if (dentry)
-    {
-        bpf_probe_read_kernel(&name, sizeof(name), &dentry->d_name.name);
-        if (name)
-        {
-            bpf_probe_read_kernel_str(filename, sizeof(filename), name);
-            bpf_printk("comm=%-16s pid=%-6d filename=%s\n",
-                       comm, pid, filename);
-        }
+        bpf_printk("BPF program deleted (put): id=%u refcount=%d\n",
+                   prog_id, count);
     }
 
     return 0;

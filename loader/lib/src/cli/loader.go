@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -207,7 +208,7 @@ func isSkipMap(name string) bool {
 	}
 
 	for _, skipName := range skipMaps {
-		if name == skipName {
+		if strings.Contains(name, skipName) {
 			return true
 		}
 	}
@@ -251,6 +252,7 @@ func (l *BPFLoader) Start() error {
 		}
 
 		handler.SetEventHandler(mapMeta.ExportHandler)
+
 		poller, err := handler.Setup(spec, m)
 		if err != nil {
 			return fmt.Errorf("setup map handler failed: %w", err)
