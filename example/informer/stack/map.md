@@ -1,0 +1,32 @@
+```bash
+# ./btrace -k bpf_map_*  |grep kprobe
+2025/03/21 11:05:12 btrace is tracing 63 kernel functions, this may take a while
+2025/03/21 11:05:15 btrace is running..
+bpf_map_area_alloc args=((u64)size=0x148/328, (int)numa_node=-1) retval=(void *)0xffff8e9841448000 cpu=0 process=(163322:kprobe)
+bpf_map_init_from_attr args=((struct bpf_map *)map=0xffff8e9841448000, (union bpf_attr *)attr=0xffffac6743e87b10) retval=(void) cpu=0 process=(163322:kprobe)
+bpf_map_put_uref args=((struct bpf_map *)map=0xffff8e9841448000) retval=(void) cpu=0 process=(163322:kprobe)
+bpf_map_put args=((struct bpf_map *)map=0xffff8e9841448000) retval=(void) cpu=0 process=(163322:kprobe)
+bpf_map_release args=((struct inode *)inode=0xffff8e984046e300, (struct file *)filp=0xffff8e989fe99000) retval=(int)0 cpu=0 process=(163322:kprobe)
+bpf_map_area_alloc args=((u64)size=0x148/328, (int)numa_node=-1) retval=(void *)0xffff8e9841448c00 cpu=0 process=(163322:kprobe)
+bpf_map_init_from_attr args=((struct bpf_map *)map=0xffff8e9841448c00, (union bpf_attr *)attr=0xffffac6743e87cb0) retval=(void) cpu=0 process=(163322:kprobe)
+bpf_map_put_uref args=((struct bpf_map *)map=0xffff8e9841448c00) retval=(void) cpu=0 process=(163322:kprobe)
+bpf_map_put args=((struct bpf_map *)map=0xffff8e9841448c00) retval=(void) cpu=0 process=(163322:kprobe)
+bpf_map_release args=((struct inode *)inode=0xffff8e984046e300, (struct file *)filp=0xffff8e989fe99000) retval=(int)0 cpu=0 process=(163322:kprobe)
+bpf_map_area_alloc args=((u64)size=0x148/328, (int)numa_node=-1) retval=(void *)0xffff8e992700c200 cpu=2 process=(163322:kprobe)
+bpf_map_init_from_attr args=((struct bpf_map *)map=0xffff8e992700c200, (union bpf_attr *)attr=0xffffac6743e8fa60) retval=(void) cpu=2 process=(163322:kprobe)
+bpf_map_inc args=((struct bpf_map *)map=0xffff8e992700c200) retval=(void) cpu=2 process=(163322:kprobe)
+bpf_map_show_fdinfo args=((struct seq_file *)m=0xffff8e9848f58d20, (struct file *)filp=0xffff8e986ff1c300) retval=(void) cpu=2 process=(163322:kprobe)
+bpf_map_value_size args=((const struct bpf_map *)map=0xffff8e992700c200) retval=(unsigned int)0x8/8 cpu=1 process=(163322:kprobe)
+bpf_map_copy_value args=((struct bpf_map *)map=0xffff8e992700c200, (void *)key=0xffff8e9844fef2f0, (void *)value=0xffff8e9844fef138, (__u64)flags=0x0/0) retval=(int)0 cpu=1 process=(163322:kprobe)
+bpf_map_value_size args=((const struct bpf_map *)map=0xffff8e992700c200) retval=(unsigned int)0x8/8 cpu=2 process=(163322:kprobe)
+bpf_map_copy_value args=((struct bpf_map *)map=0xffff8e992700c200, (void *)key=0xffff8e98482e6f58, (void *)value=0xffff8e98482e6328, (__u64)flags=0x0/0) retval=(int)0 cpu=2 process=(163322:kprobe)
+bpf_map_value_size args=((const struct bpf_map *)map=0xffff8e992700c200) retval=(unsigned int)0x8/8 cpu=3 process=(163322:kprobe)
+bpf_map_copy_value args=((struct bpf_map *)map=0xffff8e992700c200, (void *)key=0xffff8e9848e13e28, (void *)value=0xffff8e9848e13d00, (__u64)flags=0x0/0) retval=(int)0 cpu=3 process=(163322:kprobe)
+bpf_map_value_size args=((const struct bpf_map *)map=0xffff8e992700c200) retval=(unsigned int)0x8/8 cpu=3 process=(163322:kprobe)
+bpf_map_copy_value args=((struct bpf_map *)map=0xffff8e992700c200, (void *)key=0xffff8e9848e13e28, (void *)value=0xffff8e9848e13d00, (__u64)flags=0x0/0) retval=(int)0 cpu=3 process=(163322:kprobe)
+bpf_map_value_size args=((const struct bpf_map *)map=0xffff8e992700c200) retval=(unsigned int)0x8/8 cpu=2 process=(163322:kprobe)
+bpf_map_copy_value args=((struct bpf_map *)map=0xffff8e992700c200, (void *)key=0xffff8e98482e6f58, (void *)value=0xffff8e98482e6328, (__u64)flags=0x0/0) retval=(int)0 cpu=2 process=(163322:kprobe)
+bpf_map_put_uref args=((struct bpf_map *)map=0xffff8e992700c200) retval=(void) cpu=1 process=(163322:kprobe)
+bpf_map_put args=((struct bpf_map *)map=0xffff8e992700c200) retval=(void) cpu=1 process=(163322:kprobe)
+bpf_map_release args=((struct inode *)inode=0xffff8e984046e300, (struct file *)filp=0xffff8e986ff1c300) retval=(int)0 cpu=1 process=(163322:kprobe)
+```

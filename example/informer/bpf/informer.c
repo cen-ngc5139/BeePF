@@ -22,9 +22,17 @@ struct bpf_prog_state
     __u32 pid;       // 加载程序的进程ID
 };
 
+struct bpf_map_state
+{
+    __u32 map_id;
+    __u64 load_time;
+    char comm[16];
+    __u32 pid;
+    int fd;
+};
+
 struct bpf_prog_state *unused_bpf_prog_state __attribute__((unused));
 
-// 发送到 ringbuffer 的事件结构
 struct bpf_prog_event
 {
     __u32 event_type;            // 事件类型(ADD/UPDATE/DELETE)
@@ -62,6 +70,15 @@ struct
     __type(key, struct pid_func_key);
     __type(value, struct bpf_prog_state);
 } pid_func_name_states SEC(".maps");
+
+// 定义 map_id + comm 的映射
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 10000);
+    __type(key, struct pid_func_key);
+    __type(value, struct bpf_map_state);
+} pid_map_states SEC(".maps");
 
 // 辅助函数: 发送事件到 ringbuffer
 static int send_event(__u32 event_type, struct bpf_prog_state *state)
@@ -114,8 +131,6 @@ int BPF_KPROBE(trace_bpf_prog_kallsyms_add)
 
     char func_name[16];
     bpf_probe_read_kernel(&func_name, sizeof(func_name), &aux->name);
-    if (func_name == NULL)
-        return 0;
 
     struct pid_func_key key = {0};
     key.pid = state.pid;
@@ -212,6 +227,107 @@ int BPF_KPROBE(trace_bpf_prog_put)
         bpf_printk("BPF program deleted: id=%u\n",
                    state->prog_id);
     }
+
+    return 0;
+}
+
+struct bpf_map_attr
+{
+    __u32 map_type;
+    __u32 key_size;
+    __u32 value_size;
+    __u32 max_entries;
+    __u32 map_flags;
+    __u32 inner_map_fd;
+    __u32 numa_node;
+    char map_name[16];
+    __u32 map_ifindex;
+    __u32 btf_fd;
+    __u32 btf_key_type_id;
+    __u32 btf_value_type_id;
+    __u32 btf_vmlinux_value_type_id;
+};
+
+SEC("kprobe/map_create")
+int BPF_KPROBE(trace_kprobe_map_create)
+{
+    __u32 pid = bpf_get_current_pid_tgid() >> 32;
+    char comm[16];
+    bpf_get_current_comm(&comm, sizeof(comm));
+
+    void *attr = (void *)PT_REGS_PARM1(ctx);
+    struct bpf_map_attr bpf_attr;
+
+    // 使用 bpf_probe_read_kernel 来安全地读取内存
+    if (bpf_probe_read_kernel(&bpf_attr, sizeof(bpf_attr), attr) != 0)
+    {
+        bpf_printk("fail to read attr: pid=%u comm=%s\n", pid, comm);
+        return 0;
+    }
+
+    char map_name[16];
+    bpf_probe_read_kernel(&map_name, sizeof(map_name), &bpf_attr.map_name);
+
+    struct pid_func_key key = {0};
+    key.pid = pid;
+    __builtin_memcpy(key.func_name, map_name, sizeof(map_name));
+
+    struct bpf_map_state map_state = {0};
+    map_state.map_id = bpf_attr.map_type;
+    map_state.load_time = bpf_ktime_get_ns();
+    __builtin_memcpy(map_state.comm, comm, sizeof(comm));
+    map_state.pid = pid;
+
+    bpf_map_update_elem(&pid_map_states, &key, &map_state, BPF_ANY);
+
+    bpf_printk("map_create: pid=%u comm=%s map_name=%s\n", pid, comm, map_name);
+
+    return 0;
+}
+
+SEC("kprobe/bpf_map_release")
+int BPF_KPROBE(trace_bpf_map_release)
+{
+    __u32 pid = bpf_get_current_pid_tgid() >> 32;
+    char comm[16];
+    bpf_get_current_comm(&comm, sizeof(comm));
+
+    struct file *filp = (struct file *)PT_REGS_PARM2(ctx);
+    if (!filp)
+    {
+        bpf_printk("fail to get file: pid=%u comm=%s\n", pid, comm);
+        return 0;
+    }
+
+    struct bpf_map *map;
+    bpf_probe_read_kernel(&map, sizeof(map), &filp->private_data);
+    if (!map)
+    {
+        bpf_printk("fail to get map: pid=%u comm=%s\n", pid, comm);
+        return 0;
+    }
+
+    u32 map_id;
+    bpf_probe_read_kernel(&map_id, sizeof(map_id), &map->id);
+
+    char map_name[16];
+    bpf_probe_read_kernel(&map_name, sizeof(map_name), &map->name);
+
+    struct pid_func_key key = {0};
+    key.pid = pid;
+    __builtin_memcpy(key.func_name, map_name, sizeof(map_name));
+
+    struct bpf_map_state *map_state;
+    map_state = bpf_map_lookup_elem(&pid_map_states, &key);
+    if (!map_state)
+    {
+        bpf_printk("fail to get map_state from pid_map_states: pid=%u comm=%s map_name=%s\n", pid, comm, map_name);
+        return 0;
+    }
+
+    bpf_map_delete_elem(&pid_map_states, &key);
+
+    bpf_printk("BPF map released: pid=%u comm=%s map_id=%u map_name=%s\n", pid, comm, map_id, map_name);
 
     return 0;
 }
