@@ -101,9 +101,9 @@ static int send_event(__u32 event_type, struct bpf_prog_state *state)
     return 0;
 }
 
-// kprobe 处理函数：监控程序加载
+// 监控程序加载
 SEC("kprobe/bpf_prog_kallsyms_add")
-int BPF_KPROBE(trace_bpf_prog_kallsyms_add)
+int BPF_KPROBE(trace_bpf_prog_load)
 {
     // 获取返回的 bpf_prog 指针
     struct bpf_prog *prog = (struct bpf_prog *)PT_REGS_PARM1(ctx);
@@ -165,9 +165,9 @@ int BPF_KPROBE(trace_bpf_prog_kallsyms_add)
     return 0;
 }
 
-// kprobe 处理函数：监控程序释放
+// 监控程序释放
 SEC("kprobe/bpf_prog_kallsyms_del_all")
-int BPF_KPROBE(trace_bpf_prog_put)
+int BPF_KPROBE(trace_bpf_prog_release)
 {
     __u32 pid = bpf_get_current_pid_tgid() >> 32;
     char comm[16];
@@ -191,7 +191,11 @@ int BPF_KPROBE(trace_bpf_prog_put)
     }
 
     char func_name[16];
-    bpf_probe_read_kernel(&func_name, sizeof(func_name), &aux->name);
+    if (bpf_probe_read_kernel(&func_name, sizeof(func_name), &aux->name) != 0)
+    {
+        bpf_printk("fail to read func_name: pid=%u comm=%s\n", pid, comm);
+        return 0;
+    }
 
     // 尝试从状态map中查找
     struct bpf_prog_state *state;
@@ -207,9 +211,17 @@ int BPF_KPROBE(trace_bpf_prog_put)
 
     // 读取当前引用计数
     atomic_t ref_cnt;
-    bpf_probe_read_kernel(&ref_cnt, sizeof(ref_cnt), &aux->refcnt);
+    if (bpf_probe_read_kernel(&ref_cnt, sizeof(ref_cnt), &aux->refcnt) != 0)
+    {
+        bpf_printk("fail to read ref_cnt: pid=%u comm=%s\n", pid, comm);
+        return 0;
+    }
     int count = 0;
-    bpf_probe_read_kernel(&count, sizeof(count), &ref_cnt);
+    if (bpf_probe_read_kernel(&count, sizeof(count), &ref_cnt) != 0)
+    {
+        bpf_printk("fail to read count: pid=%u comm=%s\n", pid, comm);
+        return 0;
+    }
 
     // 更新状态中的引用计数
     struct bpf_prog_state updated_state = *state;
@@ -224,8 +236,7 @@ int BPF_KPROBE(trace_bpf_prog_put)
         bpf_map_delete_elem(&prog_states, &state->prog_id);
         bpf_map_delete_elem(&pid_func_name_states, &key);
 
-        bpf_printk("BPF program deleted: id=%u\n",
-                   state->prog_id);
+        bpf_printk("BPF program released: id=%u\n", state->prog_id);
     }
 
     return 0;
@@ -248,6 +259,7 @@ struct bpf_map_attr
     __u32 btf_vmlinux_value_type_id;
 };
 
+// 监控 map 创建
 SEC("kprobe/map_create")
 int BPF_KPROBE(trace_kprobe_map_create)
 {
@@ -285,6 +297,7 @@ int BPF_KPROBE(trace_kprobe_map_create)
     return 0;
 }
 
+// 监控 map 释放
 SEC("kprobe/bpf_map_release")
 int BPF_KPROBE(trace_bpf_map_release)
 {
