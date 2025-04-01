@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// 通过 cilium/ebpf 获取当前节点上所有 prog 实例
+// ListAllPrograms 通过 cilium/ebpf 获取当前节点上所有 prog 实例
 func ListAllPrograms() (map[ebpf.ProgramID]*ebpf.ProgramInfo, error) {
 	programs := make(map[ebpf.ProgramID]*ebpf.ProgramInfo)
 	var nextID ebpf.ProgramID
@@ -30,19 +30,9 @@ func ListAllPrograms() (map[ebpf.ProgramID]*ebpf.ProgramInfo, error) {
 			break
 		}
 
-		// 根据 ID 获取程序信息
-		prog, err := ebpf.NewProgramFromID(id)
-		if err != nil {
-			// 如果无法获取程序信息，记录错误但继续遍历
-			nextID = id
-			continue
-		}
-
-		// 获取程序信息
-		info, err := prog.Info()
+		info, err := GetProgInfo(ebpf.ProgramID(id))
 		if err != nil {
 			// 如果无法获取程序信息，关闭程序并继续遍历
-			prog.Close()
 			nextID = id
 			continue
 		}
@@ -50,12 +40,37 @@ func ListAllPrograms() (map[ebpf.ProgramID]*ebpf.ProgramInfo, error) {
 		// 添加程序名称到结果列表
 		programs[id] = info
 
-		// 关闭程序
-		prog.Close()
-
 		// 更新下一个 ID
 		nextID = id
 	}
 
 	return programs, nil
+}
+
+// ListAllMaps 列出所有 map
+func ListAllMaps() (map[ebpf.MapID]*ebpf.MapInfo, error) {
+	maps := make(map[ebpf.MapID]*ebpf.MapInfo)
+	var nextID ebpf.MapID
+
+	for {
+		id, err := ebpf.MapGetNextID(nextID)
+		if err != nil {
+			if errors.Is(err, unix.ENOENT) {
+				break
+			}
+			return nil, fmt.Errorf("获取下一个 map ID 失败: %w", err)
+		}
+
+		info, err := GetMapInfo(ebpf.MapID(id))
+		if err != nil {
+			nextID = id
+			continue
+		}
+
+		maps[id] = info
+
+		nextID = id
+	}
+
+	return maps, nil
 }
