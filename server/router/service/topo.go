@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/cen-ngc5139/BeePF/server/internal/operator/observability"
@@ -29,5 +30,22 @@ func (t *Topo) Prog() gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusOK, progs)
+	}
+}
+
+func (t *Topo) ProgDetail() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		progID := c.Param("progId")
+		if progID == "" {
+			utils.HandleError(c, errors.New("progId is required"))
+			return
+		}
+
+		topoOp := observability.NewTopo()
+		detail, err := topoOp.GetProgDetail(progID)
+		if utils.HandleError(c, err) {
+			return
+		}
+		c.JSON(http.StatusOK, detail)
 	}
 }

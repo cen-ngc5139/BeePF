@@ -4,6 +4,7 @@ import { ReloadOutlined } from '@ant-design/icons';
 import { getPrograms, ProgramInfo } from '../../services/topo';
 import './NodeResources.css';
 import type { ColumnsType } from 'antd/es/table';
+import { Link } from 'react-router-dom';
 
 const { Title } = Typography;
 
@@ -111,6 +112,11 @@ const NodeResourcesPage: React.FC = () => {
             dataIndex: 'ID',
             key: 'id',
             sorter: (a, b) => a.ID - b.ID,
+            render: (id: number) => (
+                <Link to={`/observability/program-detail/${id}`}>
+                    {id}
+                </Link>
+            ),
         },
         {
             title: '名称',

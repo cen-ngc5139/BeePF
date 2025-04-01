@@ -21,6 +21,7 @@ const breadcrumbNameMap: Record<string, string> = {
     '/observability': '可观测',
     '/observability/topo': '拓扑关系',
     '/observability/node-resources': '节点资源',
+    '/observability/program-detail': '程序详情',
     '/workflow': '工作流',
 }
 
@@ -152,6 +153,36 @@ const PageBreadcrumb = () => {
                     {
                         title: `任务详情${taskName ? `: ${taskName}` : ''}`,
                         key: 'task-detail',
+                    },
+                ]}
+            />
+        )
+    }
+
+    // 处理程序详情页面的面包屑
+    if (location.pathname.startsWith('/observability/program-detail/')) {
+        return (
+            <Breadcrumb
+                items={[
+                    {
+                        title: (
+                            <Link to="/">
+                                <HomeOutlined /> 首页
+                            </Link>
+                        ),
+                        key: 'home',
+                    },
+                    {
+                        title: <Link to="/observability">可观测</Link>,
+                        key: 'observability',
+                    },
+                    {
+                        title: <Link to="/observability/node-resources">节点资源</Link>,
+                        key: 'node-resources',
+                    },
+                    {
+                        title: `程序详情${location.pathname.split('/').pop() ? `: ID ${location.pathname.split('/').pop()}` : ''}`,
+                        key: 'program-detail',
                     },
                 ]}
             />

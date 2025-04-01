@@ -39,6 +39,26 @@ export interface ProgramInfo {
     Maps: number[];
 }
 
+// 定义Map信息接口
+export interface MapInfo {
+    Type: number;
+    KeySize: number;
+    ValueSize: number;
+    MaxEntries: number;
+    Flags: number;
+    Name: string;
+    ID: number;
+    BTF: number;
+    MapExtra: number;
+    Memlock: number;
+    Frozen: boolean;
+}
+
+// 定义程序详情接口
+export interface ProgramDetail extends ProgramInfo {
+    MapsDetail: MapInfo[];
+}
+
 // 获取拓扑数据
 export const getTopology = async (): Promise<Topology> => {
     const response = await axios.get('/api/v1/observability/topo');
@@ -48,5 +68,11 @@ export const getTopology = async (): Promise<Topology> => {
 // 获取节点资源数据
 export const getPrograms = async (): Promise<ProgramInfo[]> => {
     const response = await axios.get('/api/v1/observability/topo/prog');
+    return response.data;
+};
+
+// 获取程序详情数据
+export const getProgramDetail = async (progId: number): Promise<ProgramDetail> => {
+    const response = await axios.get(`/api/v1/observability/topo/prog/${progId}`);
     return response.data;
 }; 
