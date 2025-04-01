@@ -20,3 +20,14 @@ func (t *Topo) Topo() gin.HandlerFunc {
 		c.JSON(http.StatusOK, topo)
 	}
 }
+
+func (t *Topo) Prog() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		topoOp := observability.NewTopo()
+		progs, err := topoOp.ListProgs()
+		if utils.HandleError(c, err) {
+			return
+		}
+		c.JSON(http.StatusOK, progs)
+	}
+}

@@ -22,6 +22,7 @@ import CreateCluster from './pages/clusters/CreateCluster'
 import TaskList from './pages/tasks/TaskList'
 import TaskDetail from './pages/tasks/TaskDetail'
 import TopologyPage from './pages/observability/Topology'
+import NodeResourcesPage from './pages/observability/NodeResources'
 import PageBreadcrumb from './components/PageBreadcrumb'
 
 const { Header, Sider, Content } = Layout
@@ -100,6 +101,11 @@ function App() {
                 label: '可观测',
                 children: [
                   {
+                    key: 'observability-node-resources',
+                    icon: <NodeIndexOutlined />,
+                    label: <Link to="/observability/node-resources">节点资源</Link>,
+                  },
+                  {
                     key: 'observability-topo',
                     icon: <ApartmentOutlined />,
                     label: <Link to="/observability/topo">拓扑关系</Link>,
@@ -159,7 +165,8 @@ function App() {
               <Route path="/component/:id" element={<ComponentDetail />} />
               <Route path="/tasks/list" element={<TaskList />} />
               <Route path="/task/:taskId" element={<TaskDetail />} />
-              <Route path="/observability" element={<Navigate to="/observability/topo" replace />} />
+              <Route path="/observability" element={<Navigate to="/observability/node-resources" replace />} />
+              <Route path="/observability/node-resources" element={<NodeResourcesPage />} />
               <Route path="/observability/topo" element={<TopologyPage />} />
               <Route path="/workflow" element={<div>工作流</div>} />
             </Routes>

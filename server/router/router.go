@@ -44,6 +44,7 @@ func (s *Server) initRouter() *gin.Engine {
 
 		// 可观测相关接口
 		v1.GET("/observability/topo", topoService.Topo())
+		v1.GET("/observability/topo/prog", topoService.Prog())
 	}
 
 	return s.router

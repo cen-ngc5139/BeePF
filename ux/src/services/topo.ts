@@ -26,8 +26,27 @@ export interface Topology {
     Edges: TopologyEdge[];
 }
 
+// 定义节点资源数据接口
+export interface ProgramInfo {
+    ID: number;
+    Type: number;
+    Tag: string;
+    Name: string;
+    CreatedByUID: number;
+    HaveCreatedByUID: boolean;
+    BTF: number;
+    LoadTime: number;
+    Maps: number[];
+}
+
 // 获取拓扑数据
 export const getTopology = async (): Promise<Topology> => {
     const response = await axios.get('/api/v1/observability/topo');
+    return response.data;
+};
+
+// 获取节点资源数据
+export const getPrograms = async (): Promise<ProgramInfo[]> => {
+    const response = await axios.get('/api/v1/observability/topo/prog');
     return response.data;
 }; 
