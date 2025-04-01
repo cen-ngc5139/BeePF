@@ -18,7 +18,7 @@ type ProgramInfoWrapper struct {
 	CreatedByUID     uint32
 	HaveCreatedByUID bool
 	BTF              btf.ID
-	LoadTime         time.Duration
+	LoadTime         time.Time
 
 	Maps []ebpf.MapID
 }

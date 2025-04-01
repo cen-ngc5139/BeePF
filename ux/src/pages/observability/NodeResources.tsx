@@ -91,18 +91,15 @@ const NodeResourcesPage: React.FC = () => {
         ...info
     }));
 
-    // 格式化纳秒为可读时间
-    const formatTime = (nanoseconds: number) => {
-        if (nanoseconds === 0) return '0';
+    // 格式化日期时间
+    const formatDateTime = (dateTimeString: string) => {
+        if (!dateTimeString) return '-';
 
-        if (nanoseconds < 1000) {
-            return `${nanoseconds}ns`;
-        } else if (nanoseconds < 1000000) {
-            return `${(nanoseconds / 1000).toFixed(2)}µs`;
-        } else if (nanoseconds < 1000000000) {
-            return `${(nanoseconds / 1000000).toFixed(2)}ms`;
-        } else {
-            return `${(nanoseconds / 1000000000).toFixed(2)}s`;
+        try {
+            const date = new Date(dateTimeString);
+            return date.toLocaleString();
+        } catch (e) {
+            return dateTimeString;
         }
     };
 
@@ -159,10 +156,10 @@ const NodeResourcesPage: React.FC = () => {
             title: '加载时间',
             dataIndex: 'LoadTime',
             key: 'loadTime',
-            sorter: (a, b) => (a.LoadTime || 0) - (b.LoadTime || 0),
-            render: (time: number) => (
-                <Tooltip title={`${time} 纳秒`}>
-                    {formatTime(time || 0)}
+            sorter: (a, b) => new Date(a.LoadTime || 0).getTime() - new Date(b.LoadTime || 0).getTime(),
+            render: (time: string) => (
+                <Tooltip title={time}>
+                    {formatDateTime(time)}
                 </Tooltip>
             ),
         },

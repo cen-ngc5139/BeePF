@@ -35,7 +35,7 @@ export interface ProgramInfo {
     CreatedByUID: number;
     HaveCreatedByUID: boolean;
     BTF: number;
-    LoadTime: number;
+    LoadTime: string;
     Maps: number[];
 }
 

@@ -2,9 +2,11 @@ package observability
 
 import (
 	"errors"
+	"time"
 
 	"github.com/cen-ngc5139/BeePF/server/models"
 	"github.com/cilium/ebpf"
+	"github.com/shirou/gopsutil/host"
 )
 
 func ConvertProgToWrapper(prog *ebpf.ProgramInfo) (models.ProgramInfoWrapper, error) {
@@ -35,7 +37,7 @@ func ConvertProgToWrapper(prog *ebpf.ProgramInfo) (models.ProgramInfoWrapper, er
 
 	loadTime, ok := prog.LoadTime()
 	if ok {
-		wrapper.LoadTime = loadTime
+		wrapper.LoadTime = getActualLoadTime(loadTime)
 	}
 
 	createdByUID, haveCreatedByUID := prog.CreatedByUID()
@@ -83,4 +85,15 @@ func ConvertMapToWrapper(mapInfo *ebpf.MapInfo) (models.MapInfoWrapper, error) {
 	wrapper.Frozen = mapInfo.Frozen()
 
 	return wrapper, nil
+}
+
+func getActualLoadTime(loadTimeSinceBoot time.Duration) time.Time {
+	// 获取系统启动时间
+	bootTime, _ := host.BootTime()
+	bootTimeUnix := time.Unix(int64(bootTime), 0)
+
+	// 计算实际加载时间
+	actualLoadTime := bootTimeUnix.Add(loadTimeSinceBoot)
+
+	return actualLoadTime
 }

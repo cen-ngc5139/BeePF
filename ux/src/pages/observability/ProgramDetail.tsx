@@ -117,18 +117,15 @@ const ProgramDetailPage: React.FC = () => {
         navigate('/observability/node-resources');
     };
 
-    // 格式化纳秒为可读时间
-    const formatTime = (nanoseconds: number) => {
-        if (nanoseconds === 0) return '0';
+    // 格式化日期时间
+    const formatDateTime = (dateTimeString: string) => {
+        if (!dateTimeString) return '-';
 
-        if (nanoseconds < 1000) {
-            return `${nanoseconds}ns`;
-        } else if (nanoseconds < 1000000) {
-            return `${(nanoseconds / 1000).toFixed(2)}µs`;
-        } else if (nanoseconds < 1000000000) {
-            return `${(nanoseconds / 1000000).toFixed(2)}ms`;
-        } else {
-            return `${(nanoseconds / 1000000000).toFixed(2)}s`;
+        try {
+            const date = new Date(dateTimeString);
+            return date.toLocaleString();
+        } catch (e) {
+            return dateTimeString;
         }
     };
 
@@ -259,7 +256,7 @@ const ProgramDetailPage: React.FC = () => {
                                         {programDetail.BTF || '-'}
                                     </Descriptions.Item>
                                     <Descriptions.Item label="加载时间">
-                                        {formatTime(programDetail.LoadTime)}
+                                        {formatDateTime(programDetail.LoadTime)}
                                     </Descriptions.Item>
                                     <Descriptions.Item label="创建者UID">
                                         {programDetail.HaveCreatedByUID ? programDetail.CreatedByUID : '-'}
