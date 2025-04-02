@@ -66,3 +66,20 @@
         max-width: 150px;
     }
 }
+
+/* 程序指令代码区样式 */
+.instruction-code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 16px;
+    background-color: #f6f8fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    overflow: auto;
+    max-height: 600px;
+    white-space: pre;
+    word-break: normal;
+    word-wrap: normal;
+    color: #24292e;
+}

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Spin, Empty, Button, Descriptions, Table, Tag, Divider, Typography, Row, Col, Tooltip } from 'antd';
+import { Card, Spin, Empty, Button, Descriptions, Table, Tag, Divider, Typography, Row, Col, Tooltip, Tabs } from 'antd';
 import { ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
-import { getProgramDetail, ProgramDetail as ProgramDetailType, MapInfo } from '../../services/topo';
+import { getProgramDetail, getProgramInstructions, ProgramDetail as ProgramDetailType, MapInfo } from '../../services/topo';
 import './ProgramDetail.css';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
+const { TabPane } = Tabs;
 
 // eBPF 程序类型映射
 const programTypes: Record<number, string> = {
@@ -84,6 +85,9 @@ const ProgramDetailPage: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [programDetail, setProgramDetail] = useState<ProgramDetailType | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [instructions, setInstructions] = useState<string>('');
+    const [instructionsLoading, setInstructionsLoading] = useState<boolean>(false);
+    const [instructionsError, setInstructionsError] = useState<string | null>(null);
 
     const fetchProgramDetail = async () => {
         if (!progId) {
@@ -102,6 +106,29 @@ const ProgramDetailPage: React.FC = () => {
             setError('获取程序详情失败，请稍后重试');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchProgramInstructions = async () => {
+        if (!progId) return;
+
+        setInstructionsLoading(true);
+        setInstructionsError(null);
+        try {
+            const data = await getProgramInstructions(parseInt(progId));
+            setInstructions(data);
+        } catch (err) {
+            console.error('获取程序指令失败:', err);
+            setInstructionsError('获取程序指令失败，请稍后重试');
+        } finally {
+            setInstructionsLoading(false);
+        }
+    };
+
+    // 当在标签页切换到指令页时加载指令数据
+    const handleTabChange = (key: string) => {
+        if (key === 'instructions' && !instructions && !instructionsLoading) {
+            fetchProgramInstructions();
         }
     };
 
@@ -235,53 +262,68 @@ const ProgramDetailPage: React.FC = () => {
                             </Col>
 
                             <Col span={24}>
-                                <Descriptions
-                                    title="基本信息"
-                                    bordered
-                                    column={{ xxl: 4, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
-                                >
-                                    <Descriptions.Item label="ID">
-                                        {programDetail.ID}
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="名称">
-                                        {programDetail.Name || '-'}
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="类型">
-                                        {programTypes[programDetail.Type] || `类型 ${programDetail.Type}`}
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="标签">
-                                        <Tag color="blue">{programDetail.Tag}</Tag>
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="BTF ID">
-                                        {programDetail.BTF || '-'}
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="加载时间">
-                                        {formatDateTime(programDetail.LoadTime)}
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="创建者UID">
-                                        {programDetail.HaveCreatedByUID ? programDetail.CreatedByUID : '-'}
-                                    </Descriptions.Item>
-                                </Descriptions>
-                            </Col>
+                                <Tabs defaultActiveKey="info" onChange={handleTabChange}>
+                                    <TabPane tab="基本信息" key="info">
+                                        <Descriptions
+                                            title="基本信息"
+                                            bordered
+                                            column={{ xxl: 4, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
+                                        >
+                                            <Descriptions.Item label="ID">
+                                                {programDetail.ID}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="名称">
+                                                {programDetail.Name || '-'}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="类型">
+                                                {programTypes[programDetail.Type] || `类型 ${programDetail.Type}`}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="标签">
+                                                <Text copyable>{programDetail.Tag || '-'}</Text>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="BTF ID">
+                                                {programDetail.BTF || '-'}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="创建者 UID">
+                                                {programDetail.HaveCreatedByUID ? programDetail.CreatedByUID : '-'}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="加载时间">
+                                                {formatDateTime(programDetail.LoadTime) || '-'}
+                                            </Descriptions.Item>
+                                        </Descriptions>
 
-                            <Col span={24}>
-                                <Divider orientation="left">关联的 Maps ({programDetail.MapsDetail?.length || 0})</Divider>
-                                {programDetail.MapsDetail && programDetail.MapsDetail.length > 0 ? (
-                                    <Table
-                                        dataSource={programDetail.MapsDetail}
-                                        columns={mapColumns}
-                                        rowKey="ID"
-                                        scroll={{ x: 'max-content' }}
-                                        pagination={false}
-                                    />
-                                ) : (
-                                    <Empty description="没有关联的Maps数据" />
-                                )}
+                                        <Divider orientation="left">关联的 Map</Divider>
+                                        <Table
+                                            columns={mapColumns}
+                                            dataSource={programDetail.MapsDetail.map((item) => ({ ...item, key: item.ID }))}
+                                            rowKey="ID"
+                                            scroll={{ x: 'max-content' }}
+                                        />
+                                    </TabPane>
+                                    <TabPane tab="程序指令" key="instructions">
+                                        {instructionsLoading ? (
+                                            <div className="loading-container">
+                                                <Spin size="default" tip="加载中..." />
+                                            </div>
+                                        ) : instructionsError ? (
+                                            <div className="error-container">
+                                                <Empty
+                                                    description={instructionsError}
+                                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <pre className="instruction-code">
+                                                {instructions || '暂无指令数据'}
+                                            </pre>
+                                        )}
+                                    </TabPane>
+                                </Tabs>
                             </Col>
                         </Row>
                     </div>
                 ) : (
-                    <Empty description="未找到程序详情" />
+                    <Empty description="未找到程序数据" />
                 )}
             </Card>
         </div>

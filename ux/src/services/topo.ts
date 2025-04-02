@@ -75,4 +75,12 @@ export const getPrograms = async (): Promise<ProgramInfo[]> => {
 export const getProgramDetail = async (progId: number): Promise<ProgramDetail> => {
     const response = await axios.get(`/api/v1/observability/topo/prog/${progId}`);
     return response.data;
+};
+
+// 获取程序指令信息
+export const getProgramInstructions = async (progId: number): Promise<string> => {
+    const response = await axios.get(`/api/v1/observability/topo/prog/${progId}/dump`, {
+        responseType: 'text'
+    });
+    return response.data;
 }; 
