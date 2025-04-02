@@ -56,7 +56,7 @@ export interface MapInfo {
 
 // 定义程序详情接口
 export interface ProgramDetail extends ProgramInfo {
-    MapsDetail: MapInfo[];
+    MapsDetail: MapInfo[] | null;
 }
 
 // 获取拓扑数据

@@ -293,12 +293,16 @@ const ProgramDetailPage: React.FC = () => {
                                         </Descriptions>
 
                                         <Divider orientation="left">关联的 Map</Divider>
-                                        <Table
-                                            columns={mapColumns}
-                                            dataSource={programDetail.MapsDetail.map((item) => ({ ...item, key: item.ID }))}
-                                            rowKey="ID"
-                                            scroll={{ x: 'max-content' }}
-                                        />
+                                        {programDetail.MapsDetail && programDetail.MapsDetail.length > 0 ? (
+                                            <Table
+                                                columns={mapColumns}
+                                                dataSource={programDetail.MapsDetail.map((item) => ({ ...item, key: item.ID }))}
+                                                rowKey="ID"
+                                                scroll={{ x: 'max-content' }}
+                                            />
+                                        ) : (
+                                            <Empty description="无关联的 Map 数据" />
+                                        )}
                                     </TabPane>
                                     <TabPane tab="程序指令" key="instructions">
                                         {instructionsLoading ? (
