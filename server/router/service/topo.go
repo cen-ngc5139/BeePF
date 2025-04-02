@@ -49,3 +49,20 @@ func (t *Topo) ProgDetail() gin.HandlerFunc {
 		c.JSON(http.StatusOK, detail)
 	}
 }
+
+func (t *Topo) ProgDump() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		progID := c.Param("progId")
+		if progID == "" {
+			utils.HandleError(c, errors.New("progId is required"))
+			return
+		}
+		topoOp := observability.NewTopo()
+		dump, err := topoOp.GetProgDump(progID)
+		if utils.HandleError(c, err) {
+			return
+		}
+
+		c.Data(http.StatusOK, "text/plain", dump)
+	}
+}

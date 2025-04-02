@@ -46,6 +46,7 @@ func (s *Server) initRouter() *gin.Engine {
 		v1.GET("/observability/topo", topoService.Topo())
 		v1.GET("/observability/topo/prog", topoService.Prog())
 		v1.GET("/observability/topo/prog/:progId", topoService.ProgDetail())
+		v1.GET("/observability/topo/prog/:progId/dump", topoService.ProgDump())
 	}
 
 	return s.router
