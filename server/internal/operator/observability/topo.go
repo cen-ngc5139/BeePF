@@ -81,13 +81,27 @@ func (t *Topo) GetProgDetail(progID string) (*models.ProgramDetail, error) {
 	return &detail, nil
 }
 
-func (t *Topo) GetProgDump(progID string) ([]byte, error) {
+func (t *Topo) DumpXlated(progID string) ([]byte, error) {
 	progIDInt, err := strconv.ParseUint(progID, 10, 64)
 	if err != nil {
 		return nil, errors.Wrap(err, "转换程序 ID 失败")
 	}
 
 	dump, err := lib.GetProgDumpXlated(ebpf.ProgramID(progIDInt))
+	if err != nil {
+		return nil, errors.Wrap(err, "获取程序 dump 失败")
+	}
+
+	return dump, nil
+}
+
+func (t *Topo) DumpJited(progID string) ([]byte, error) {
+	progIDInt, err := strconv.ParseUint(progID, 10, 64)
+	if err != nil {
+		return nil, errors.Wrap(err, "转换程序 ID 失败")
+	}
+
+	dump, err := lib.GetProgDumpJited(ebpf.ProgramID(progIDInt))
 	if err != nil {
 		return nil, errors.Wrap(err, "获取程序 dump 失败")
 	}

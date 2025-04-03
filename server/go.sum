@@ -5,10 +5,8 @@ github.com/bytedance/sonic v1.12.6/go.mod h1:B8Gt/XvtZ3Fqj+iSKMypzymZxw/FVwgIGKz
 github.com/bytedance/sonic/loader v0.1.1/go.mod h1:ncP89zfokxS5LZrJxl5z0UJcsk4M4yY2JpfqGeCtNLU=
 github.com/bytedance/sonic/loader v0.2.1 h1:1GgorWTqf12TA8mma4DDSbaQigE2wOgQo7iCjjJv3+E=
 github.com/bytedance/sonic/loader v0.2.1/go.mod h1:ncP89zfokxS5LZrJxl5z0UJcsk4M4yY2JpfqGeCtNLU=
-github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250401074509-231112bd6e97 h1:I6VxXBNEmjflaiPdGaKteUH7pxNMrqpOJreBBiisxNQ=
-github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250401074509-231112bd6e97/go.mod h1:w/uk3rK9Vjooo8WGC3kaEmt1y7oBg8j8tpaxVYpI2Os=
-github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250402023223-dc638aa60e85 h1:EAdGt7e+E5LPTauIs/oILGwxAti8t7GzoO4JiwcDNuc=
-github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250402023223-dc638aa60e85/go.mod h1:w/uk3rK9Vjooo8WGC3kaEmt1y7oBg8j8tpaxVYpI2Os=
+github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250403032333-f8005450c2b0 h1:3FUtCflqOgsigl+ie5j/P6Ry/SBj6d2z/DpWVs4WSA8=
+github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250403032333-f8005450c2b0/go.mod h1:w/uk3rK9Vjooo8WGC3kaEmt1y7oBg8j8tpaxVYpI2Os=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cilium/ebpf v0.17.3 h1:FnP4r16PWYSE4ux6zN+//jMcW4nMVRvuTLVTvCjyyjg=

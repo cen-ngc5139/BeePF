@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
-	github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250402023223-dc638aa60e85
+	github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250403032333-f8005450c2b0
 	github.com/cilium/ebpf v0.17.3
 	github.com/gin-contrib/pprof v1.5.2
 	github.com/gin-gonic/gin v1.10.0

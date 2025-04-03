@@ -6,13 +6,14 @@ toolchain go1.22.4
 
 require (
 	github.com/cilium/ebpf v0.17.2
+	github.com/knightsc/gapstone v4.0.1+incompatible
 	github.com/pkg/errors v0.9.1
 	go.uber.org/zap v1.27.0
 )
 
 require (
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.28.0
 )
 
 require (

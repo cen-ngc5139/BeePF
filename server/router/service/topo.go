@@ -57,8 +57,26 @@ func (t *Topo) ProgDump() gin.HandlerFunc {
 			utils.HandleError(c, errors.New("progId is required"))
 			return
 		}
+
+		dumpType := c.Query("type")
+		if dumpType == "" {
+			dumpType = "xlated"
+		}
+
 		topoOp := observability.NewTopo()
-		dump, err := topoOp.GetProgDump(progID)
+
+		var dump []byte
+		var err error
+		switch dumpType {
+		case "xlated":
+			dump, err = topoOp.DumpXlated(progID)
+		case "jited":
+			dump, err = topoOp.DumpJited(progID)
+		default:
+			utils.HandleError(c, errors.New("invalid dump type"))
+			return
+		}
+
 		if utils.HandleError(c, err) {
 			return
 		}
