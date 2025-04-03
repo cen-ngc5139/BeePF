@@ -78,9 +78,15 @@ export const getProgramDetail = async (progId: number): Promise<ProgramDetail> =
 };
 
 // 获取程序指令信息
-export const getProgramInstructions = async (progId: number): Promise<string> => {
+export const getProgramInstructions = async (progId: number, type: 'xlated' | 'jited' = 'xlated'): Promise<string> => {
     const response = await axios.get(`/api/v1/observability/topo/prog/${progId}/dump`, {
+        params: { type },
         responseType: 'text'
     });
     return response.data;
+};
+
+// 获取程序源代码信息
+export const getProgramSourceCode = async (progId: number): Promise<string> => {
+    return getProgramInstructions(progId, 'jited');
 }; 

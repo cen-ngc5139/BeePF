@@ -5,8 +5,8 @@ github.com/bytedance/sonic v1.12.6/go.mod h1:B8Gt/XvtZ3Fqj+iSKMypzymZxw/FVwgIGKz
 github.com/bytedance/sonic/loader v0.1.1/go.mod h1:ncP89zfokxS5LZrJxl5z0UJcsk4M4yY2JpfqGeCtNLU=
 github.com/bytedance/sonic/loader v0.2.1 h1:1GgorWTqf12TA8mma4DDSbaQigE2wOgQo7iCjjJv3+E=
 github.com/bytedance/sonic/loader v0.2.1/go.mod h1:ncP89zfokxS5LZrJxl5z0UJcsk4M4yY2JpfqGeCtNLU=
-github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250403032333-f8005450c2b0 h1:3FUtCflqOgsigl+ie5j/P6Ry/SBj6d2z/DpWVs4WSA8=
-github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250403032333-f8005450c2b0/go.mod h1:w/uk3rK9Vjooo8WGC3kaEmt1y7oBg8j8tpaxVYpI2Os=
+github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250403084039-44e4d1013928 h1:IHB7oHsnmuuN7ZfalQkFOFi2PbzW1p4HBUdmz17bwwo=
+github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250403084039-44e4d1013928/go.mod h1:BlNofPmwQMIBzm/p79/Y34zC6Y2NvyMrJr8v5JNeQyE=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cilium/ebpf v0.17.3 h1:FnP4r16PWYSE4ux6zN+//jMcW4nMVRvuTLVTvCjyyjg=
@@ -64,6 +64,8 @@ github.com/klauspost/compress v1.17.11/go.mod h1:pMDklpSncoRMuLFrf1W9Ss9KT+0rH90
 github.com/klauspost/cpuid/v2 v2.0.9/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
 github.com/klauspost/cpuid/v2 v2.2.9 h1:66ze0taIn2H33fBvCkXuv9BmCwDfafmiIVpKV9kKGuY=
 github.com/klauspost/cpuid/v2 v2.2.9/go.mod h1:rqkxqrZ1EhYM9G+hXH7YdowN5R5RGN6NK4QwQ3WMXF8=
+github.com/knightsc/gapstone v4.0.1+incompatible h1:yROPRgpqBWgD/7fyH3+AJ2hQR4gYfKNFGnKcNY8HPIA=
+github.com/knightsc/gapstone v4.0.1+incompatible/go.mod h1:N9Q82fxOi8Fp9pHE2eflNZf5/FSg1815WZFhV8Gc2PE=
 github.com/knz/go-libedit v1.10.1/go.mod h1:MZTVkCWyz0oBc7JOWP3wNAzd002ZbM/5hgShxwh4x8M=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=

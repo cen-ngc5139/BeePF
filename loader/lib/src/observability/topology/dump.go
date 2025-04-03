@@ -59,6 +59,8 @@ func GetProgDumpJited(progID ebpf.ProgramID) ([]byte, error) {
 		return nil, fmt.Errorf("failed to get program from id: %w", err)
 	}
 
+	defer prog.Close()
+
 	engine, err := gapstone.New(int(gapstone.CS_ARCH_X86), int(gapstone.CS_MODE_64))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gapstone engine: %w", err)
@@ -73,6 +75,11 @@ func GetProgDumpJited(progID ebpf.ProgramID) ([]byte, error) {
 	progInfo, err := prog.Info()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get program info: %w", err)
+	}
+
+	fullName, err := GetFullName(progInfo)
+	if err == nil {
+		progInfo.Name = fullName
 	}
 
 	var buf bytes.Buffer

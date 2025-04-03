@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Spin, Empty, Button, Descriptions, Table, Tag, Divider, Typography, Row, Col, Tooltip, Tabs } from 'antd';
 import { ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
-import { getProgramDetail, getProgramInstructions, ProgramDetail as ProgramDetailType, MapInfo } from '../../services/topo';
+import { getProgramDetail, getProgramInstructions, getProgramSourceCode, ProgramDetail as ProgramDetailType, MapInfo } from '../../services/topo';
 import './ProgramDetail.css';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -86,8 +86,11 @@ const ProgramDetailPage: React.FC = () => {
     const [programDetail, setProgramDetail] = useState<ProgramDetailType | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [instructions, setInstructions] = useState<string>('');
+    const [sourceCode, setSourceCode] = useState<string>('');
     const [instructionsLoading, setInstructionsLoading] = useState<boolean>(false);
+    const [sourceCodeLoading, setSourceCodeLoading] = useState<boolean>(false);
     const [instructionsError, setInstructionsError] = useState<string | null>(null);
+    const [sourceCodeError, setSourceCodeError] = useState<string | null>(null);
 
     const fetchProgramDetail = async () => {
         if (!progId) {
@@ -115,7 +118,7 @@ const ProgramDetailPage: React.FC = () => {
         setInstructionsLoading(true);
         setInstructionsError(null);
         try {
-            const data = await getProgramInstructions(parseInt(progId));
+            const data = await getProgramInstructions(parseInt(progId), 'xlated');
             setInstructions(data);
         } catch (err) {
             console.error('获取程序指令失败:', err);
@@ -125,10 +128,28 @@ const ProgramDetailPage: React.FC = () => {
         }
     };
 
-    // 当在标签页切换到指令页时加载指令数据
+    const fetchProgramSourceCode = async () => {
+        if (!progId) return;
+
+        setSourceCodeLoading(true);
+        setSourceCodeError(null);
+        try {
+            const data = await getProgramSourceCode(parseInt(progId));
+            setSourceCode(data);
+        } catch (err) {
+            console.error('获取程序源代码失败:', err);
+            setSourceCodeError('获取程序源代码失败，请稍后重试');
+        } finally {
+            setSourceCodeLoading(false);
+        }
+    };
+
+    // 当在标签页切换到指令页或源代码页时加载数据
     const handleTabChange = (key: string) => {
         if (key === 'instructions' && !instructions && !instructionsLoading) {
             fetchProgramInstructions();
+        } else if (key === 'sourceCode' && !sourceCode && !sourceCodeLoading) {
+            fetchProgramSourceCode();
         }
     };
 
@@ -319,6 +340,24 @@ const ProgramDetailPage: React.FC = () => {
                                         ) : (
                                             <pre className="instruction-code">
                                                 {instructions || '暂无指令数据'}
+                                            </pre>
+                                        )}
+                                    </TabPane>
+                                    <TabPane tab="源代码" key="sourceCode">
+                                        {sourceCodeLoading ? (
+                                            <div className="loading-container">
+                                                <Spin size="default" tip="加载中..." />
+                                            </div>
+                                        ) : sourceCodeError ? (
+                                            <div className="error-container">
+                                                <Empty
+                                                    description={sourceCodeError}
+                                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <pre className="instruction-code">
+                                                {sourceCode || '暂无源代码数据'}
                                             </pre>
                                         )}
                                     </TabPane>
