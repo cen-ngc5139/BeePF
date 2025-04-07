@@ -12,6 +12,8 @@ import {
   UploadOutlined,
   ScheduleOutlined,
   ApartmentOutlined,
+  DashboardOutlined,
+  AreaChartOutlined,
 } from '@ant-design/icons'
 import { BrowserRouter as Router, Route, Routes, Link, Navigate } from 'react-router-dom'
 import ComponentList from './pages/components/ComponentList'
@@ -24,6 +26,7 @@ import TaskDetail from './pages/tasks/TaskDetail'
 import TopologyPage from './pages/observability/Topology'
 import NodeResourcesPage from './pages/observability/NodeResources'
 import ProgramDetailPage from './pages/observability/ProgramDetail'
+import NodeMetricsPage from './pages/observability/NodeMetrics'
 import PageBreadcrumb from './components/PageBreadcrumb'
 
 const { Header, Sider, Content } = Layout
@@ -107,6 +110,11 @@ function App() {
                     label: <Link to="/observability/node-resources">节点资源</Link>,
                   },
                   {
+                    key: 'observability-node-metrics',
+                    icon: <AreaChartOutlined />,
+                    label: <Link to="/observability/node-metrics">节点指标</Link>,
+                  },
+                  {
                     key: 'observability-topo',
                     icon: <ApartmentOutlined />,
                     label: <Link to="/observability/topo">拓扑关系</Link>,
@@ -168,6 +176,7 @@ function App() {
               <Route path="/task/:taskId" element={<TaskDetail />} />
               <Route path="/observability" element={<Navigate to="/observability/node-resources" replace />} />
               <Route path="/observability/node-resources" element={<NodeResourcesPage />} />
+              <Route path="/observability/node-metrics" element={<NodeMetricsPage />} />
               <Route path="/observability/program-detail/:progId" element={<ProgramDetailPage />} />
               <Route path="/observability/topo" element={<TopologyPage />} />
               <Route path="/workflow" element={<div>工作流</div>} />
