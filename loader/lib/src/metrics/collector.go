@@ -29,6 +29,8 @@ type Collector interface {
 
 	SetAttachedPros(map[uint32]*ebpf.Program) error
 
+	GetAttachedPros() map[uint32]*ebpf.Program
+
 	Export() error
 }
 
@@ -241,4 +243,11 @@ func (c *StatsCollector) Export() error {
 	}()
 
 	return nil
+}
+
+func (c *StatsCollector) GetAttachedPros() map[uint32]*ebpf.Program {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.attachedPros
 }
