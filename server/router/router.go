@@ -6,13 +6,16 @@ import (
 )
 
 var (
-	clusterService   = &service.Cluster{}
-	componentService = &service.Component{}
-	taskService      = &service.Task{}
-	topoService      = &service.Topo{}
+	clusterService     = &service.Cluster{}
+	componentService   = &service.Component{}
+	taskService        = &service.Task{}
+	topoService        = &service.Topo{}
+	nodeMetricsService = &service.NodeMetrics{}
 )
 
 func (s *Server) initRouter() *gin.Engine {
+	nodeMetricsService.Metrics = s.metrics
+
 	v1 := s.router.Group("/api/v1")
 	{
 		v1.GET("/ping", Ping)
@@ -47,6 +50,9 @@ func (s *Server) initRouter() *gin.Engine {
 		v1.GET("/observability/topo/prog", topoService.Prog())
 		v1.GET("/observability/topo/prog/:progId", topoService.ProgDetail())
 		v1.GET("/observability/topo/prog/:progId/dump", topoService.ProgDump())
+
+		// 节点指标相关接口
+		v1.GET("/observability/node/metrics", nodeMetricsService.GetMetrics())
 
 	}
 

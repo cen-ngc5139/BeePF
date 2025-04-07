@@ -12,6 +12,7 @@ import (
 	"log"
 
 	"github.com/cen-ngc5139/BeePF/server/conf"
+	"github.com/cen-ngc5139/BeePF/server/internal/metrics"
 	"github.com/cen-ngc5139/BeePF/server/pkg/utils"
 	"github.com/gin-contrib/pprof"
 
@@ -23,8 +24,9 @@ var (
 )
 
 type Server struct {
-	router *gin.Engine
-	server http.Server
+	router  *gin.Engine
+	server  http.Server
+	metrics *metrics.NodeMetricsCollector
 }
 
 func Ping(c *gin.Context) {
@@ -49,6 +51,10 @@ func NewServer(middleware ...gin.HandlerFunc) *Server {
 			Handler: r,
 		},
 	}
+}
+
+func (s *Server) SetMetricsCollector(collector *metrics.NodeMetricsCollector) {
+	s.metrics = collector
 }
 
 func (s *Server) Start() error {

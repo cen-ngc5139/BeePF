@@ -2,25 +2,37 @@ package meta
 
 import "time"
 
+type ProgMetricsStats struct {
+	Stats *MetricsStats
+	// 程序 ID
+	ID uint32
+
+	// 程序类型
+	Type string
+
+	// 程序名称
+	Name string
+}
+
 // MetricsStats 表示 BPF 程序的运行时统计信息
 type MetricsStats struct {
 	// CPU 使用率
-	CPUTimePercent float64
+	CPUTimePercent float64 `json:"cpu_time_percent"`
 
 	// 每秒事件数
-	EventsPerSecond int64
+	EventsPerSecond int64 `json:"events_per_second"`
 
 	// 平均运行时间(ns)
-	AvgRunTimeNS uint64
+	AvgRunTimeNS uint64 `json:"avg_run_time_ns"`
 
 	// 总平均运行时间(ns)
-	TotalAvgRunTimeNS uint64
+	TotalAvgRunTimeNS uint64 `json:"total_avg_run_time_ns"`
 
 	// 采样周期(ns)
-	PeriodNS uint64
+	PeriodNS uint64 `json:"period_ns"`
 
 	// 最后更新时间
-	LastUpdate time.Time
+	LastUpdate time.Time `json:"last_update"`
 }
 
 // NewStats 创建新的统计信息实例

@@ -86,8 +86,8 @@ func (c *NodeMetricsCollector) Stop() error {
 	return c.Collector.Stop()
 }
 
-func (c *NodeMetricsCollector) GetMetrics() (map[uint32]*meta.MetricsStats, error) {
-	metrics := make(map[uint32]*meta.MetricsStats)
+func (c *NodeMetricsCollector) GetMetrics() (map[uint32]*meta.ProgMetricsStats, error) {
+	metrics := make(map[uint32]*meta.ProgMetricsStats)
 	programs, err := c.Collector.GetPrograms()
 	if err != nil {
 		return nil, fmt.Errorf("fail to get programs: %v", err)
@@ -99,7 +99,12 @@ func (c *NodeMetricsCollector) GetMetrics() (map[uint32]*meta.MetricsStats, erro
 			return nil, fmt.Errorf("fail to get program stats: %v", err)
 		}
 
-		metrics[program.ID] = stats
+		metrics[program.ID] = &meta.ProgMetricsStats{
+			ID:    program.ID,
+			Type:  program.Type,
+			Name:  program.Name,
+			Stats: stats,
+		}
 	}
 	return metrics, nil
 }
