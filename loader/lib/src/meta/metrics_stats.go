@@ -3,15 +3,16 @@ package meta
 import "time"
 
 type ProgMetricsStats struct {
-	Stats *MetricsStats
+	// 程序运行时统计信息
+	Stats *MetricsStats `json:"stats"`
 	// 程序 ID
-	ID uint32
+	ID uint32 `json:"id"`
 
 	// 程序类型
-	Type string
+	Type string `json:"type"`
 
 	// 程序名称
-	Name string
+	Name string `json:"name"`
 }
 
 // MetricsStats 表示 BPF 程序的运行时统计信息

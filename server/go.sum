@@ -9,6 +9,10 @@ github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250403084039-44e4d1013928 h1:IHB7oH
 github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250403084039-44e4d1013928/go.mod h1:BlNofPmwQMIBzm/p79/Y34zC6Y2NvyMrJr8v5JNeQyE=
 github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250407091543-d06994586f46 h1:CuuPfWBrfN1S8HG4OjfW277e0kOE7dV4g6+8wB9K9VQ=
 github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250407091543-d06994586f46/go.mod h1:BlNofPmwQMIBzm/p79/Y34zC6Y2NvyMrJr8v5JNeQyE=
+github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250407095719-47ad15acdaea h1:r5YXZgYEUL9JpZNKiI/YduGuBlIJthdwI252lbncVaw=
+github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250407095719-47ad15acdaea/go.mod h1:BlNofPmwQMIBzm/p79/Y34zC6Y2NvyMrJr8v5JNeQyE=
+github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250407100731-7f3d786ed974 h1:ASBgh0DZoIfdQ2ZDph9p6wjgzk0GO0mRMPGfKGfu8GQ=
+github.com/cen-ngc5139/BeePF v0.0.1-rc16.0.20250407100731-7f3d786ed974/go.mod h1:BlNofPmwQMIBzm/p79/Y34zC6Y2NvyMrJr8v5JNeQyE=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cilium/ebpf v0.17.3 h1:FnP4r16PWYSE4ux6zN+//jMcW4nMVRvuTLVTvCjyyjg=

@@ -28,14 +28,14 @@ func NewNodeMetricsCollector(interval time.Duration, logger *zap.Logger) (*NodeM
 	}, nil
 }
 
-func (c *NodeMetricsCollector) GetMetrics() (map[uint32]*meta.MetricsStats, error) {
+func (c *NodeMetricsCollector) GetMetrics() (map[uint32]*meta.ProgMetricsStats, error) {
 	curr, err := c.NodeMetricsCollector.GetMetrics()
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node metrics: %v", err)
 	}
 
 	for id, s := range curr {
-		if s.CPUTimePercent == 0 {
+		if s.Stats.CPUTimePercent == 0 {
 			delete(curr, id)
 		}
 	}
