@@ -34,7 +34,7 @@ const { Header, Sider, Content } = Layout
 const { Title } = Typography
 
 function App() {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken()
@@ -48,7 +48,7 @@ function App() {
             theme="dark"
             mode="inline"
             defaultSelectedKeys={['1']}
-            defaultOpenKeys={['components', 'clusters']}
+            defaultOpenKeys={[]}
             items={[
               {
                 key: 'clusters',
