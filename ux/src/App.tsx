@@ -28,6 +28,7 @@ import NodeResourcesPage from './pages/observability/NodeResources'
 import ProgramDetailPage from './pages/observability/ProgramDetail'
 import NodeMetricsPage from './pages/observability/NodeMetrics'
 import PageBreadcrumb from './components/PageBreadcrumb'
+import Logo from './components/Logo'
 
 const { Header, Sider, Content } = Layout
 const { Title } = Typography
@@ -42,11 +43,7 @@ function App() {
     <Router>
       <Layout style={{ minHeight: '100vh' }}>
         <Sider trigger={null} collapsible collapsed={collapsed}>
-          <div className="logo">
-            <Title level={4} style={{ color: '#fff', margin: '16px', textAlign: 'center' }}>
-              {collapsed ? 'BPF' : 'BeePF'}
-            </Title>
-          </div>
+          <Logo collapsed={collapsed} />
           <Menu
             theme="dark"
             mode="inline"
