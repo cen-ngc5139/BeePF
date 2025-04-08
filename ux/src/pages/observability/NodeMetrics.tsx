@@ -100,7 +100,7 @@ const NodeMetricsPage: React.FC = () => {
 
     // 格式化百分比
     const formatPercent = (value: number) => {
-        return (value * 100).toFixed(3) + '%';
+        return value.toFixed(1) + '%';
     };
 
     // 格式化纳秒
@@ -181,7 +181,7 @@ const NodeMetricsPage: React.FC = () => {
                 } else if (value > 0.005) {
                     color = 'orange';
                 }
-                return <Tag color={color}>{formatPercent(value)}</Tag>;
+                return <Tag color={color}>{value}</Tag>;
             },
         },
     ];
