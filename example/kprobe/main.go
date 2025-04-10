@@ -13,7 +13,7 @@ import (
 )
 
 //go:generate sh -c "echo Generating for $TARGET_GOARCH"
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target $TARGET_GOARCH -go-package binary -output-dir ./binary -cc clang -no-strip kprobe ./bpf/kprobe.c -- -I../headers -Wno-address-of-packed-member
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target $TARGET_GOARCH -go-package main -output-dir ./ -cc clang -no-strip kprobe ./bpf/kprobe.c -- -I../headers -Wno-address-of-packed-member
 
 func main() {
 	// 初始化日志
@@ -24,7 +24,7 @@ func main() {
 	defer logger.Sync()
 
 	config := &loader.Config{
-		ObjectPath:  "./binary/kprobe_x86_bpfel.o",
+		ObjectBytes: _KprobeBytes,
 		Logger:      logger,
 		PollTimeout: 100 * time.Millisecond,
 		Properties:  meta.Properties{},

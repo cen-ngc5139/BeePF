@@ -2,13 +2,18 @@ package loader
 
 import (
 	"fmt"
-	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 	"time"
+
+	"github.com/cen-ngc5139/BeePF/loader/lib/src/skeleton/export"
 )
 
 func ValidateAndMutateConfig(cfg *Config) error {
-	if cfg.ObjectPath == "" {
-		return fmt.Errorf("object path is required")
+	if cfg.ObjectBytes == nil && cfg.ObjectPath == "" {
+		return fmt.Errorf("object file is required")
+	}
+
+	if cfg.ObjectBytes != nil && cfg.ObjectPath != "" {
+		return fmt.Errorf("object file and object bytes cannot both be set")
 	}
 
 	if cfg.Logger == nil {

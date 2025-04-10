@@ -31,6 +31,18 @@ func GenerateComposedObject(objectFile string, properties Properties) (*Composed
 	}, nil
 }
 
+func GenerateComposedObjectWithBytes(objectBytes []byte, properties Properties) (*ComposedObject, error) {
+	meta, err := GenerateMeta(objectBytes, properties)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ComposedObject{
+		Meta:      *meta,
+		BpfObject: objectBytes,
+	}, nil
+}
+
 // GenerateMeta 生成元数据
 func GenerateMeta(objectFile []byte, properties Properties) (*EunomiaObjectMeta, error) {
 	// 从字节流中加载

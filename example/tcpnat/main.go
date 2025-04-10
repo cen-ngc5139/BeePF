@@ -17,7 +17,7 @@ import (
 )
 
 //go:generate sh -c "echo Generating for $TARGET_GOARCH"
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -type ipv4_key_t  -target $TARGET_GOARCH -go-package binary -output-dir ./binary -cc clang -no-strip TcpNat ./bpf/tcpnat.c -- -I../headers -Wno-address-of-packed-member
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -type ipv4_key_t  -target $TARGET_GOARCH -go-package main -output-dir ./ -cc clang -no-strip TcpNat ./bpf/tcpnat.c -- -I../headers -Wno-address-of-packed-member
 
 var SkipNet = flag.String("skip", "", "跳过指定网络，格式为逗号分隔的CIDR列表，如 10.0.0.0/24,192.168.100.0/24")
 
@@ -48,7 +48,7 @@ func main() {
 	defer logger.Sync()
 
 	config := &loader.Config{
-		ObjectPath:  "./binary/tcpnat_x86_bpfel.o",
+		ObjectBytes: _TcpNatBytes,
 		Logger:      logger,
 		PollTimeout: 100 * time.Millisecond,
 		Properties: meta.Properties{

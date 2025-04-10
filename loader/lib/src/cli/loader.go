@@ -48,6 +48,7 @@ type BPFLoader struct {
 // Config 配置结构
 type Config struct {
 	ObjectPath  string
+	ObjectBytes []byte
 	BTFPath     string
 	Logger      *zap.Logger
 	PollTimeout time.Duration
@@ -101,13 +102,20 @@ func NewBPFLoader(cfg *Config) *BPFLoader {
 }
 
 // Init 初始化阶段
-func (l *BPFLoader) Init() error {
+func (l *BPFLoader) Init() (err error) {
 	l.Logger.Info("initializing BPF loader...")
 
-	// 生成组合对象
-	pkg, err := meta.GenerateComposedObject(l.Config.ObjectPath, l.Config.Properties)
-	if err != nil {
-		return fmt.Errorf("generate composed object failed: %w", err)
+	var pkg *meta.ComposedObject
+	if l.Config.ObjectBytes != nil {
+		pkg, err = meta.GenerateComposedObjectWithBytes(l.Config.ObjectBytes, l.Config.Properties)
+		if err != nil {
+			return fmt.Errorf("generate composed object failed: %w", err)
+		}
+	} else {
+		pkg, err = meta.GenerateComposedObject(l.Config.ObjectPath, l.Config.Properties)
+		if err != nil {
+			return fmt.Errorf("generate composed object failed: %w", err)
+		}
 	}
 
 	// 构建预加载骨架
