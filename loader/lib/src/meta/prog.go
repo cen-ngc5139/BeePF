@@ -97,8 +97,47 @@ func (p *ProgMeta) attachKprobe(program *ebpf.Program) (link.Link, error) {
 }
 
 func (p *ProgMeta) attachUprobe(program *ebpf.Program) (link.Link, error) {
-	// todo: 需要实现
-	return nil, nil
+	// 解析附加点信息，格式应该是 "uprobe/path:symbol" 或 "uretprobe/path:symbol"
+	attachPoint := strings.SplitN(p.Attach, "/", 2)
+	if len(attachPoint) != 2 {
+		return nil, fmt.Errorf("invalid uprobe attach point: %s, expected format uprobe/path:symbol", p.Attach)
+	}
+
+	// 确定是 uprobe 还是 uretprobe
+	isRet := false
+	if strings.HasPrefix(p.Attach, "uretprobe/") {
+		isRet = true
+	} else if !strings.HasPrefix(p.Attach, "uprobe/") {
+		return nil, fmt.Errorf("invalid uprobe prefix: %s, expected uprobe/ or uretprobe/", p.Attach)
+	}
+
+	ex, err := link.OpenExecutable(p.Properties.Uprobe.BinPath)
+	if err != nil {
+		return nil, fmt.Errorf("error:%v , couldn't enable uprobe %s", err, p.Properties.Uprobe.BinPath)
+	}
+	opts := &link.UprobeOptions{
+		Offset:  p.Properties.Uprobe.Offset,
+		Address: p.Properties.Uprobe.Address,
+		PID:     p.Properties.Uprobe.PID,
+	}
+
+	// 创建 uprobe 或 uretprobe
+	var up link.Link
+	if isRet {
+		up, err = ex.Uretprobe(p.Properties.Uprobe.Symbol, program, opts)
+		if err != nil {
+			return nil, fmt.Errorf("opening Uretprobe failed: %v, binary:%s, symbol:%s",
+				err, p.Properties.Uprobe.BinPath, p.Properties.Uprobe.Symbol)
+		}
+	} else {
+		up, err = ex.Uprobe(p.Properties.Uprobe.Symbol, program, opts)
+		if err != nil {
+			return nil, fmt.Errorf("opening Uprobe failed: %v, binary:%s, symbol:%s",
+				err, p.Properties.Uprobe.BinPath, p.Properties.Uprobe.Symbol)
+		}
+	}
+
+	return up, nil
 }
 
 func (p *ProgMeta) attachTracepoint(program *ebpf.Program) (link.Link, error) {

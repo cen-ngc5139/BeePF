@@ -70,6 +70,26 @@ type ProgramProperties struct {
 
 	// Tc 流量控制配置
 	Tc *TCCLS
+
+	// Uprobe 用户态探针配置
+	Uprobe *UprobeProperties
+}
+
+type UprobeProperties struct {
+	// BinPath 用于指定用户态探针的二进制路径
+	BinPath string
+
+	// Symbol 用于指定用户态探针的符号
+	Symbol string
+
+	// Offset 用于指定用户态探针的偏移
+	Offset uint64
+
+	// Address 用于指定用户态探针的地址
+	Address uint64
+
+	// PID 用于指定用户态探针的进程ID
+	PID int
 }
 
 type TCCLS struct {
