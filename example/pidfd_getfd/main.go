@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cen-ngc5139/BeePF/example/pidfd_getfd/binary"
+	"github.com/cen-ngc5139/BeePF/example/tcpnat/src"
 	"github.com/cen-ngc5139/BeePF/loader/lib/src/meta"
 
 	loader "github.com/cen-ngc5139/BeePF/loader/lib/src/cli"
@@ -28,7 +29,13 @@ func main() {
 		ObjectBytes: binary.ExportRaw(),
 		Logger:      logger,
 		PollTimeout: 100 * time.Millisecond,
-		Properties:  meta.Properties{},
+		Properties: meta.Properties{
+			Maps: map[string]*meta.Map{
+				"pidfd_map": {
+					ExportHandler: &src.SkipHandler{},
+				},
+			},
+		},
 	}
 
 	bpfLoader := loader.NewBPFLoader(config)
