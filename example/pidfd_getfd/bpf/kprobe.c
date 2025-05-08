@@ -8,19 +8,17 @@
 #include "bpf/bpf_endian.h"
 #include "bpf/bpf_ipv6.h"
 
-// 定义存储捕获数据的结构体
 struct event
 {
-    u32 pid;
-    u32 tgid;
+    u32 hack_tgid;
+    u32 hack_pid;
+    u32 target_tgid;
     u64 timestamp;
-    u32 pidfd;
-    u32 fd;
-    u32 flags;
-    char comm[16];
+    int hack_fd;
+    int target_pidfd;
+    int target_fd;
+    char hack_comm[16];
 };
-
-// 定义一个性能事件映射用于向用户空间传输数据
 struct
 {
     __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
@@ -34,49 +32,114 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __uint(max_entries, 10240);
     __type(key, u32);
-    __type(value, u32);
+    __type(value, struct event);
 } pidfd_map SEC(".maps");
 
 struct event *unused_event_t __attribute__((unused));
 
-// kprobe 挂载点
-SEC("kprobe/__x64_sys_pidfd_getfd")
-int BPF_KPROBE(kprobe__pidfd_getfd)
+// 使用 bpfsnoop -k __x64_sys_pidfd_* --output-stack --output-arg="regs->di" --output-arg="regs->si" 命令进行验证
+SEC("tracepoint/syscalls/sys_enter_pidfd_getfd")
+int trace_pidfd_getfd(struct trace_event_raw_sys_enter *ctx)
 {
+    u32 hack_pid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
+    u32 hack_tgid = bpf_get_current_pid_tgid() >> 32;
+    u64 timestamp = bpf_ktime_get_ns();
+
+    struct event *e = bpf_map_lookup_elem(&pidfd_map, &hack_pid);
+    if (!e)
+    {
+        return 0;
+    }
+
+    e->target_fd = (int)ctx->args[1];
+    bpf_map_update_elem(&pidfd_map, &hack_pid, e, BPF_ANY);
+
+    bpf_printk("pidfd_getfd: pid=%d, tgid=%d, timestamp=%lld, pidfd=%d, fd=%d, comm=%s\n",
+               e->hack_pid, e->hack_tgid, e->timestamp, e->hack_fd, e->target_fd, e->hack_comm);
+    return 0;
+}
+
+SEC("tracepoint/syscalls/sys_exit_pidfd_getfd")
+int trace_pidfd_getfd_ret(struct trace_event_raw_sys_exit *ctx)
+{
+    u32 hack_pid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
+    struct event *e = bpf_map_lookup_elem(&pidfd_map, &hack_pid);
+    if (!e)
+    {
+        return 0;
+    }
+
+    int fd = (int)ctx->ret;
+    e->hack_fd = fd;
+    bpf_map_update_elem(&pidfd_map, &hack_pid, e, BPF_ANY);
+    bpf_printk("pidfd_getfd: pid=%d, fd=%d\n", hack_pid, fd);
+    return 0;
+}
+
+SEC("tracepoint/syscalls/sys_enter_mmap")
+int trace_mmap(struct trace_event_raw_sys_enter *ctx)
+{
+    u32 pid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
+    struct event *e = bpf_map_lookup_elem(&pidfd_map, &pid);
+    if (!e)
+    {
+        return 0;
+    }
+
+    // asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
+    //   unsigned long prot, unsigned long flags,
+    //   unsigned long fd, unsigned long off);
+    int fd = (int)ctx->args[4];
+    bpf_printk("mmap: pid=%d, fd=%d\n", pid, fd);
+    if (fd != e->hack_fd)
+    {
+        return 0;
+    }
+
+    bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, e, sizeof(*e));
+    bpf_printk("memset: hack_pid=%d, hack_tgid=%d, hack_fd=%d, hack_comm=%s, target_tgid=%d, target_pidfd=%d, target_fd=%d\n",
+               e->hack_pid, e->hack_tgid, e->hack_fd, e->hack_comm, e->target_tgid, e->target_pidfd, e->target_fd);
+    return 0;
+}
+
+SEC("tracepoint/syscalls/sys_enter_pidfd_open")
+int trace_pidfd_open(struct trace_event_raw_sys_enter *ctx)
+{
+    u32 target_tgid = (u32)ctx->args[0];
+    u64 pid = bpf_get_current_pid_tgid();
+    u32 hack_tgid = pid >> 32;
+
     struct event e = {0};
-
-    // 获取当前进程信息
-    e.pid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
-    e.tgid = bpf_get_current_pid_tgid() >> 32;
+    e.hack_pid = pid;
+    e.hack_tgid = hack_tgid;
+    e.target_tgid = target_tgid;
     e.timestamp = bpf_ktime_get_ns();
-    bpf_get_current_comm(&e.comm, sizeof(e.comm));
+    bpf_get_current_comm(&e.hack_comm, sizeof(e.hack_comm));
 
-    // 获取函数参数
-    e.pidfd = (u32)PT_REGS_PARM1(ctx);
-    e.fd = (u32)PT_REGS_PARM2(ctx);
-    e.flags = (u32)PT_REGS_PARM3(ctx);
-
-    // 将事件发送到用户空间
-    bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &e, sizeof(e));
-    bpf_map_update_elem(&pidfd_map, &e.pid, &e.fd, BPF_ANY);
-
-    // 打印调试信息
-    bpf_printk("pidfd_getfd: pid=%d, tgid=%d, timestamp=%lld, pidfd=%d, fd=%d, flags=%d, comm=%s\n",
-               e.pid, e.tgid, e.timestamp, e.pidfd, e.fd, e.flags, e.comm);
+    bpf_map_update_elem(&pidfd_map, &pid, &e, BPF_ANY);
+    bpf_printk("pidfd_open: hack_tgid=%d, target_tgid=%d\n", hack_tgid, target_tgid);
 
     return 0;
 }
 
-SEC("kprobe/sys_mmap")
-int BPF_KPROBE(kprobe__memset)
+SEC("tracepoint/syscalls/sys_exit_pidfd_open")
+int trace_pidfd_open_ret(struct trace_event_raw_sys_exit *ctx)
 {
-    u32 pid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
-    u32 *fd = (u32 *)bpf_map_lookup_elem(&pidfd_map, &pid);
-    if (!fd)
+    int pidfd = (int)ctx->ret;
+    if (pidfd < 0)
+        return 0;
+
+    u64 pid = bpf_get_current_pid_tgid();
+    struct event *e = bpf_map_lookup_elem(&pidfd_map, &pid);
+    if (!e)
     {
         return 0;
     }
-    bpf_printk("memset: pid=%d, fd=%d\n", pid, fd);
+
+    e->target_pidfd = pidfd;
+    bpf_map_update_elem(&pidfd_map, &pid, e, BPF_ANY);
+
+    bpf_printk("pidfd_open: pid=%d, pidfd=%d\n", pid, pidfd);
 
     return 0;
 }
